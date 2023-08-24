@@ -11,3 +11,10 @@ services:
       POSTGRES_PASSWORD: search-service
       POSTGRES_DB: search-service
       POSTGRES_HOST_AUTH_METHOD: trust
+    
+  server:
+    container_name: search-service-server
+    ports:
+      - 3000:3000
+    build: .
+    entrypoint: [ "bash", "-c", "server run-http-server"]

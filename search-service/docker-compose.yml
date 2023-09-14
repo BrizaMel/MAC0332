@@ -1,0 +1,13 @@
+version: "3.8"
+
+services:
+  postgres:
+    container_name: search-service-pg
+    image: postgres:12-alpine
+    ports:
+      - 54329:5432
+    environment:
+      POSTGRES_USER: search-service
+      POSTGRES_PASSWORD: search-service
+      POSTGRES_DB: search-service
+      POSTGRES_HOST_AUTH_METHOD: trust

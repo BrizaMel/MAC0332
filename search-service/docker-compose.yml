@@ -1,7 +1,7 @@
 version: "3.8"
 
 services:
-  postgres:
+  postgresdb:
     container_name: search-service-pg
     image: postgres:12-alpine
     ports:
@@ -11,10 +11,18 @@ services:
       POSTGRES_PASSWORD: search-service
       POSTGRES_DB: search-service
       POSTGRES_HOST_AUTH_METHOD: trust
+    healthcheck:
+      test: "pg_isready -d search-serice"      
     
   server:
     container_name: search-service-server
     ports:
       - 3000:3000
     build: .
+    environment:
+      DB_HOST: search-service-pg
+      DB_PORT: 5432
     entrypoint: [ "bash", "-c", "server run-http-server"]
+    depends_on:
+      postgresdb:
+        condition: service_healthy

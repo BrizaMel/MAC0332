@@ -1,4 +1,4 @@
-use axum::{extract::State, routing::get, Router};
+use axum::{extract::State, routing::get, response::IntoResponse, Router, Json};
 use std::net::SocketAddr;
 
 use std::sync::Arc;
@@ -12,7 +12,8 @@ pub struct AppState {
 pub async fn run_http_server() -> anyhow::Result<()> {
     let addr: SocketAddr = "0.0.0.0:3000".parse().expect("provide a valid address");
 
-    let storage = PostgresStorage::new(PostgresConfig::new()).await?;
+    //Choose correct Storage classe, depending on the aplication DBMS 
+    let storage = PostgresStorage::new(PostgresConfig::new()).await.expect("Error initializing psql_storage");
 
     let app_state = Arc::new(AppState { db: storage });
 
@@ -29,13 +30,22 @@ pub async fn run_http_server() -> anyhow::Result<()> {
     Ok(())
 }
 
-async fn get_filter_properties(State(app_state): State<Arc<AppState>>) -> Result<String,String> {
+async fn get_filter_properties(State(app_state): State<Arc<AppState>>) -> impl IntoResponse {
 
     let db_storage = &app_state.db;
 
-    Ok(db_storage.return_result().await.to_string())
+    let table_vec = db_storage.get_db_tables().await.expect("Error retireving Database Tables");
 
-    // Ok("abacaxi".to_string())
+    let json_response = serde_json::json!({
+        "status": "success",
+        "data":serde_json::json!({
+            "tables":serde_json::json!(table_vec),
+            "foreing_keys":"".to_string(),
+            "primary_keys":"".to_string()           
+        })
+    });
+
+    Json(json_response)
 }
 
 fn search() -> String {

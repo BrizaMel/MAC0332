@@ -10,7 +10,7 @@ pub struct PostgresConfig {
 }
 
 impl PostgresConfig {
-    fn new() -> Self {
+    pub fn new() -> Self {
         Self {
             host: std::env::var("DB_HOST").unwrap_or_else(|_| "localhost".to_string()),
             port: std::env::var("DB_PORT")

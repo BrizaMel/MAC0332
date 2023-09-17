@@ -2,8 +2,10 @@
 
 SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 
-DML_DIR=$SCRIPT_DIR"/dml/"
-DDL_FILE=$SCRIPT_DIR"/ddl.sql"
+DML_DIR="$SCRIPT_DIR/dml/"
+DDL_FILE="$SCRIPT_DIR/ddl.sql"
+
+echo $DDL_FILE
 
 usage() {
     cat <<EOF
@@ -95,7 +97,7 @@ connection="postgres://$DATABASE_USER:$DATABASE_PASSWORD@$DATABASE_HOST:$DATABAS
 
 
 ddl_database(){
-    error=$(psql $connection -f $DDL_FILE 2>&1 | grep -i "error")
+    error=$(psql $connection -f "$DDL_FILE" 2>&1 | grep -i "error")
     if [[ "$error" != "" ]]; then
         echo "$error"
         return 1
@@ -107,8 +109,8 @@ ddl_database(){
 
 dml_database(){
     dml_errors=""
-    for filename in $(ls $DML_DIR | grep ".sql") ; do
-        error=$(psql $connection -f $DML_DIR'/'$filename 2>&1 | grep -i "error")
+    for filename in $(ls "$DML_DIR" | grep ".sql") ; do
+        error=$(psql $connection -f "$DML_DIR/"$filename 2>&1 | grep -i "error")
         if [[ "$error" != "" ]];then
             dml_errors=$dml_errors$'\n'$error
         fi

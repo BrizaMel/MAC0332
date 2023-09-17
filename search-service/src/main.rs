@@ -1,5 +1,6 @@
 pub mod cli;
 pub mod controller;
+pub mod postgres;
 
 use crate::cli::{Cli, Command};
 use crate::controller::http::run_http_server;

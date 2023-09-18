@@ -34,15 +34,11 @@ async fn get_filter_properties(State(app_state): State<Arc<AppState>>) -> impl I
 
     let db_storage = &app_state.db;
 
-    let table_vec = db_storage.get_db_tables().await.expect("Error retireving Database Tables");
-
+    let db_schema_info = db_storage.get_db_schema_info().await.expect("Error retireving Database Schema Information");
+    
     let json_response = serde_json::json!({
         "status": "success",
-        "data":serde_json::json!({
-            "tables":serde_json::json!(table_vec),
-            "foreing_keys":"".to_string(),
-            "primary_keys":"".to_string()           
-        })
+        "schema_info": serde_json::json!(db_schema_info),
     });
 
     Json(json_response)

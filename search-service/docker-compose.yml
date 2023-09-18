@@ -4,6 +4,7 @@ services:
   postgresdb:
     container_name: search-service-pg
     image: postgres:12-alpine
+    restart: always
     ports:
       - 54329:5432
     environment:
@@ -11,13 +12,14 @@ services:
       POSTGRES_PASSWORD: search-service
       POSTGRES_DB: search-service
       POSTGRES_HOST_AUTH_METHOD: trust
+    volumes: 
+      - db:/var/lib/postgresql/data
     healthcheck:
       test: "pg_isready -d search-service -U search-service"   
       interval: 10s
       timeout: 3s
       retries: 3
-   
-    
+
   server:
     container_name: search-service-server
     ports:
@@ -30,3 +32,7 @@ services:
     depends_on:
       postgresdb:
         condition: service_healthy
+
+volumes:
+  db:
+    driver: local

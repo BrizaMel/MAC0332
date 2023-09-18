@@ -60,7 +60,16 @@ impl PostgresStorage {
         Ok(client)
     }
 
-    pub async fn get_db_tables(&self) -> Result<Vec<Table>>{
+    pub async fn get_db_schema_info(&self) -> Result<DbSchema>{
+
+        let table_vec = self.get_db_tables().await.expect("Error retireving Database Tables");
+        let foreign_key_vec = self.get_db_foreign_keys().await.expect("Error retireving Database Foreign Keys");
+        let db_schema : DbSchema = DbSchema::new(table_vec,foreign_key_vec);
+
+        Ok(db_schema)
+    }
+
+    async fn get_db_tables(&self) -> Result<Vec<Table>>{
         let mut table_vec: Vec<Table> = Vec::new();
         let this_client = self.get_client().await.expect("Unable to retrieve Postgres Client");
         // Search for tables
@@ -73,8 +82,6 @@ impl PostgresStorage {
             let table_name : String = tables_row.get(2);
 
             let mut attributes_vec: Vec<Attribute> = Vec::new();
-
-
             // For each table, search for its attributes
             for attributes_row in this_client.query("
                 SELECT column_name, data_type
@@ -89,11 +96,76 @@ impl PostgresStorage {
                 attributes_vec.push(attribute);
             }
 
-            let table : Table = Table::new(table_schema,table_name,attributes_vec);
+            let mut primary_keys_vec: Vec<PrimaryKey> = Vec::new();
+
+            // For each table, search for its primary_keys
+            for primary_keys_row in this_client.query("
+                SELECT tc.table_schema,tc.table_name,c.column_name
+                FROM information_schema.table_constraints tc 
+                JOIN information_schema.constraint_column_usage AS ccu USING (constraint_schema, constraint_name) 
+                JOIN information_schema.columns AS c ON c.table_schema = tc.constraint_schema
+                  AND tc.table_name = c.table_name AND ccu.column_name = c.column_name
+                WHERE constraint_type = 'PRIMARY KEY' AND tc.table_schema in ('public','movies')
+                AND tc.table_name = $1;
+            ",&[&table_name]).await.unwrap(){
+
+                let schema_name = primary_keys_row.get(0);
+                let table_name = primary_keys_row.get(1);
+                let attribute_name = primary_keys_row.get(2);
+                let primary_key : PrimaryKey = PrimaryKey::new(
+                    schema_name,
+                    table_name,
+                    attribute_name);
+                primary_keys_vec.push(primary_key);
+            }
+
+            let table : Table = Table::new(table_schema,table_name,attributes_vec,primary_keys_vec);
             table_vec.push(table);
         }
 
         Ok(table_vec)
+    }
+
+    async fn get_db_foreign_keys(&self) -> Result<Vec<ForeignKey>>{
+        let mut foreign_keys_vec: Vec<ForeignKey> = Vec::new();
+        let this_client = self.get_client().await.expect("Unable to retrieve Postgres Client");
+
+        // Search for foreign keys
+        for foreign_keys_rows in this_client.query("
+            SELECT
+                tc.table_schema, 
+                tc.table_name, 
+                kcu.column_name, 
+                ccu.table_schema AS foreign_table_schema,
+                ccu.table_name AS foreign_table_name,
+                ccu.column_name AS foreign_column_name 
+            FROM information_schema.table_constraints AS tc 
+            JOIN information_schema.key_column_usage AS kcu
+                ON tc.constraint_name = kcu.constraint_name
+                AND tc.table_schema = kcu.table_schema
+            JOIN information_schema.constraint_column_usage AS ccu
+                ON ccu.constraint_name = tc.constraint_name
+            WHERE tc.constraint_type = 'FOREIGN KEY';
+        ",&[]).await.unwrap(){
+            let schema_name: String = foreign_keys_rows.get(0);
+            let table_name: String =foreign_keys_rows.get(1);
+            let attribute_name: String = foreign_keys_rows.get(2);
+            let schema_name_foreign: String = foreign_keys_rows.get(3);
+            let table_name_foreign: String = foreign_keys_rows.get(4);
+            let attribute_name_foreign: String = foreign_keys_rows.get(5);
+    
+            let foreign_key : ForeignKey = ForeignKey::new(
+                schema_name,
+                table_name,
+                attribute_name,
+                schema_name_foreign,
+                table_name_foreign,
+                attribute_name_foreign);
+            foreign_keys_vec.push(foreign_key);
+
+        }
+
+        Ok(foreign_keys_vec)
     }
 
     pub async fn return_result(&self) -> &str{
@@ -116,28 +188,31 @@ pub struct Attribute {
 pub struct Table {
     schema: String,
     name: String,
-    attributes: Vec<Attribute>
+    attributes: Vec<Attribute>,
+    primary_keys: Vec<PrimaryKey>
 }
 
 #[derive(Serialize, Deserialize)]
-struct ForeignKey {
-    attribute1: Attribute,
-    table1: Table,
-    attribute2: Attribute,
-    table2: Table
+pub struct ForeignKey {
+    schema_name: String,
+    table_name: String,
+    attribute_name: String,
+    schema_name_foreign: String,
+    table_name_foreign: String,
+    attribute_name_foreign: String
 }
 
 #[derive(Serialize, Deserialize)]
-struct PrimaryKey {
-    table: Table,
-    attribute: Attribute,
+pub struct PrimaryKey {
+    schema_name: String,
+    table_name: String,
+    attribute_name: String,
 }
 
 #[derive(Serialize, Deserialize)]
-struct DbSchema {
+pub struct DbSchema {
     tables: Vec<Table>,
     foreing_keys : Vec<ForeignKey>,
-    primary_keys: Vec<PrimaryKey>
 }
 
 impl Attribute {
@@ -149,14 +224,55 @@ impl Attribute {
 }
 
 impl Table {
-    pub fn new(arg_schema:String,arg_name:String,arg_attributes:Vec<Attribute>) -> Self {
-        let schema = arg_schema;
-        let name = arg_name;
-        let attributes = arg_attributes;
+    pub fn new(schema:String,name:String,attributes:Vec<Attribute>,primary_keys:Vec<PrimaryKey>) -> Self {
         Self {
             schema,
             name,
-            attributes
+            attributes,
+            primary_keys
+        }
+    }
+}
+
+impl ForeignKey {
+    pub fn new(
+            schema_name:String,
+            table_name:String,
+            attribute_name:String,
+            schema_name_foreign:String,
+            table_name_foreign:String,
+            attribute_name_foreign:String) -> Self {
+        Self {
+            schema_name,
+            table_name,
+            attribute_name,
+            schema_name_foreign,
+            table_name_foreign,
+            attribute_name_foreign
+        }
+    }
+}
+
+impl PrimaryKey {
+    pub fn new(
+            schema_name:String,
+            table_name:String,
+            attribute_name:String) -> Self {
+        Self {
+            schema_name,
+            table_name,
+            attribute_name,
+        }
+    }
+}
+
+impl DbSchema {
+    pub fn new(
+            tables:Vec<Table>,
+            foreing_keys:Vec<ForeignKey>) -> Self {
+        Self {
+            tables,
+            foreing_keys
         }
     }
 }

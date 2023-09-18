@@ -62,62 +62,37 @@ impl PostgresStorage {
 
     pub async fn get_db_schema_info(&self) -> Result<DbSchema>{
 
-        let table_vec = self.get_db_tables().await.expect("Error retireving Database Tables");
-        let foreign_key_vec = self.get_db_foreign_keys().await.expect("Error retireving Database Foreign Keys");
+        let mut allowed_schemas : Vec<String> = Vec::new();
+        allowed_schemas.push("movies".to_string());
+        allowed_schemas.push("public".to_string());
+
+        let this_client = self.get_client().await.expect("Unable to retrieve Postgres Client");
+        let table_vec = self.get_db_tables(&this_client,&allowed_schemas).await.expect("Error retireving Database Tables");
+        let foreign_key_vec = self.get_db_foreign_keys(&this_client,&allowed_schemas).await.expect("Error retireving Database Foreign Keys");
         let db_schema : DbSchema = DbSchema::new(table_vec,foreign_key_vec);
 
         Ok(db_schema)
     }
 
-    async fn get_db_tables(&self) -> Result<Vec<Table>>{
+    async fn get_db_tables(&self,client:&Object,allowed_schemas: &Vec<String>) -> Result<Vec<Table>>{
         let mut table_vec: Vec<Table> = Vec::new();
-        let this_client = self.get_client().await.expect("Unable to retrieve Postgres Client");
+        
         // Search for tables
-        for tables_row in this_client.query(
+        for tables_row in client.query(
             "SELECT table_catalog as db_name, table_schema,table_name
             FROM information_schema.tables
-            WHERE table_schema in ('movies','public');",
-            &[]).await.unwrap() {
+            WHERE table_schema = any($1);",
+            &[&allowed_schemas]).await.unwrap() {
             let table_schema : String = tables_row.get(1);
             let table_name : String = tables_row.get(2);
 
-            let mut attributes_vec: Vec<Attribute> = Vec::new();
-            // For each table, search for its attributes
-            for attributes_row in this_client.query("
-                SELECT column_name, data_type
-                FROM information_schema.columns
-                WHERE table_schema = 'movies' AND table_name = $1;
-            ",&[&table_name]).await.unwrap(){
+            let attributes_vec: Vec<Attribute> = self.get_table_attributes(&table_schema,&table_name,&client)
+                                                        .await
+                                                        .expect("Error retireving attributes");
 
-                let column_name : String = attributes_row.get(0);
-                let data_type : String = attributes_row.get(1);
-                let attribute : Attribute = Attribute::new(column_name,data_type);
-
-                attributes_vec.push(attribute);
-            }
-
-            let mut primary_keys_vec: Vec<PrimaryKey> = Vec::new();
-
-            // For each table, search for its primary_keys
-            for primary_keys_row in this_client.query("
-                SELECT tc.table_schema,tc.table_name,c.column_name
-                FROM information_schema.table_constraints tc 
-                JOIN information_schema.constraint_column_usage AS ccu USING (constraint_schema, constraint_name) 
-                JOIN information_schema.columns AS c ON c.table_schema = tc.constraint_schema
-                  AND tc.table_name = c.table_name AND ccu.column_name = c.column_name
-                WHERE constraint_type = 'PRIMARY KEY' AND tc.table_schema in ('public','movies')
-                AND tc.table_name = $1;
-            ",&[&table_name]).await.unwrap(){
-
-                let schema_name = primary_keys_row.get(0);
-                let table_name = primary_keys_row.get(1);
-                let attribute_name = primary_keys_row.get(2);
-                let primary_key : PrimaryKey = PrimaryKey::new(
-                    schema_name,
-                    table_name,
-                    attribute_name);
-                primary_keys_vec.push(primary_key);
-            }
+            let primary_keys_vec: Vec<PrimaryKey> = self.get_table_primary_keys(&table_schema,&table_name,&client)
+                                                        .await
+                                                        .expect("Error retireving primary keys");
 
             let table : Table = Table::new(table_schema,table_name,attributes_vec,primary_keys_vec);
             table_vec.push(table);
@@ -126,12 +101,58 @@ impl PostgresStorage {
         Ok(table_vec)
     }
 
-    async fn get_db_foreign_keys(&self) -> Result<Vec<ForeignKey>>{
+    async fn get_table_attributes(&self,table_schema: &String,table_name: &String,client: &Object ) -> Result<Vec<Attribute>> {
+        let mut attributes_vec: Vec<Attribute> = Vec::new();
+        
+        // For each table, search for its attributes
+        for attributes_row in client.query("
+            SELECT column_name, data_type
+            FROM information_schema.columns
+            WHERE table_schema = $1 AND table_name = $2;
+        ",&[&table_schema,&table_name]).await.unwrap(){
+
+            let column_name : String = attributes_row.get(0);
+            let data_type : String = attributes_row.get(1);
+            let attribute : Attribute = Attribute::new(column_name,data_type);
+
+            attributes_vec.push(attribute);
+        }
+    
+        Ok(attributes_vec)
+    }
+
+    async fn get_table_primary_keys(&self,table_schema: &String,table_name: &String,client: &Object ) -> Result<Vec<PrimaryKey>> {
+        let mut primary_keys_vec: Vec<PrimaryKey> = Vec::new();
+        
+        // For each table, search for its primary_keys
+        for primary_keys_row in client.query("
+            SELECT tc.table_schema,tc.table_name,c.column_name
+            FROM information_schema.table_constraints tc 
+            JOIN information_schema.constraint_column_usage AS ccu USING (constraint_schema, constraint_name) 
+            JOIN information_schema.columns AS c ON c.table_schema = tc.constraint_schema
+              AND tc.table_name = c.table_name AND ccu.column_name = c.column_name
+            WHERE constraint_type = 'PRIMARY KEY' AND tc.table_schema = $1
+            AND tc.table_name = $2;
+        ",&[&table_schema,&table_name]).await.unwrap(){
+
+            let schema_name = primary_keys_row.get(0);
+            let table_name = primary_keys_row.get(1);
+            let attribute_name = primary_keys_row.get(2);
+            let primary_key : PrimaryKey = PrimaryKey::new(
+                schema_name,
+                table_name,
+                attribute_name);
+            primary_keys_vec.push(primary_key);
+        }
+
+        Ok(primary_keys_vec)
+    }
+
+    async fn get_db_foreign_keys(&self,client: &Object,allowed_schemas: &Vec<String>) -> Result<Vec<ForeignKey>>{
         let mut foreign_keys_vec: Vec<ForeignKey> = Vec::new();
-        let this_client = self.get_client().await.expect("Unable to retrieve Postgres Client");
 
         // Search for foreign keys
-        for foreign_keys_rows in this_client.query("
+        for foreign_keys_rows in client.query("
             SELECT
                 tc.table_schema, 
                 tc.table_name, 
@@ -145,8 +166,9 @@ impl PostgresStorage {
                 AND tc.table_schema = kcu.table_schema
             JOIN information_schema.constraint_column_usage AS ccu
                 ON ccu.constraint_name = tc.constraint_name
-            WHERE tc.constraint_type = 'FOREIGN KEY';
-        ",&[]).await.unwrap(){
+            WHERE tc.constraint_type = 'FOREIGN KEY' AND
+            tc.table_schema = any($1) AND ccu.table_schema = any($1);
+        ",&[&allowed_schemas]).await.unwrap(){
             let schema_name: String = foreign_keys_rows.get(0);
             let table_name: String =foreign_keys_rows.get(1);
             let attribute_name: String = foreign_keys_rows.get(2);
@@ -224,7 +246,11 @@ impl Attribute {
 }
 
 impl Table {
-    pub fn new(schema:String,name:String,attributes:Vec<Attribute>,primary_keys:Vec<PrimaryKey>) -> Self {
+    pub fn new(
+            schema:String,
+            name:String,
+            attributes:Vec<Attribute>,
+            primary_keys:Vec<PrimaryKey>) -> Self {
         Self {
             schema,
             name,

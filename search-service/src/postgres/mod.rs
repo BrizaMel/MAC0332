@@ -9,10 +9,14 @@ pub struct PostgresConfig {
     pub user: String,
     pub password: String,
     pub dbname: String,
+    pub allowed_schemas: Vec<String>
 }
 
 impl PostgresConfig {
     pub fn new() -> Self {
+
+        let allowed_schemas_var = std::env::var("ALLOWED_SCHEMAS").unwrap_or_else(|_| "public".to_string());
+        let allowed_schemas: Vec<String> = allowed_schemas_var.split(",").map(|s| s.to_string()).collect();
         Self {
             host: std::env::var("DB_HOST").unwrap_or_else(|_| "localhost".to_string()),
             port: std::env::var("DB_PORT")
@@ -22,12 +26,14 @@ impl PostgresConfig {
             user: std::env::var("DB_USER").unwrap_or_else(|_| "search-service".to_string()),
             password: std::env::var("DB_PASS").unwrap_or_else(|_| "search-service".to_string()),
             dbname: std::env::var("DB_NAME").unwrap_or_else(|_| "search-service".to_string()),
+            allowed_schemas: allowed_schemas
         }
     }
 }
 
 pub struct PostgresStorage {
     pub pool: Pool,
+    pub allowed_schemas: Vec<String>
 }
 
 impl PostgresStorage {
@@ -51,7 +57,11 @@ impl PostgresStorage {
 
         let pool = Pool::builder(mgr).build()?;
 
-        Ok(Self { pool })
+        let allowed_schemas = config.allowed_schemas;
+        
+        println!("Allowed Schemas: {:?}", allowed_schemas);
+
+        Ok(Self { pool,allowed_schemas })
     }
 
     pub async fn get_client(&self) -> Result<Object> {
@@ -62,9 +72,7 @@ impl PostgresStorage {
 
     pub async fn get_db_schema_info(&self) -> Result<DbSchema>{
 
-        let mut allowed_schemas : Vec<String> = Vec::new();
-        allowed_schemas.push("movies".to_string());
-        allowed_schemas.push("public".to_string());
+        let allowed_schemas : &Vec<String> = &self.allowed_schemas;
 
         let this_client = self.get_client().await.expect("Unable to retrieve Postgres Client");
         let table_vec = self.get_db_tables(&this_client,&allowed_schemas).await.expect("Error retireving Database Tables");

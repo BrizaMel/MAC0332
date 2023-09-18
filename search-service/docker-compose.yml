@@ -28,6 +28,7 @@ services:
     environment:
       DB_HOST: search-service-pg
       DB_PORT: 5432
+      ALLOWED_SCHEMAS: public,movies # Schemas the server can query (splitted by ',')
     entrypoint: [ "bash", "-c", "server run-http-server"]
     depends_on:
       postgresdb:

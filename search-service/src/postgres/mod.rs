@@ -2,6 +2,9 @@ use anyhow::{Ok, Result};
 use deadpool_postgres::{Manager, ManagerConfig, Object, Pool, RecyclingMethod};
 use tokio_postgres::NoTls;
 
+mod queries;
+
+
 use serde::{Deserialize, Serialize};
 pub struct PostgresConfig {
     pub host: String,
@@ -87,12 +90,10 @@ impl PostgresStorage {
         
         // Search for tables
         for tables_row in client.query(
-            "SELECT table_catalog as db_name, table_schema,table_name
-            FROM information_schema.tables
-            WHERE table_schema = any($1);",
-            &[&allowed_schemas]).await.unwrap() {
-            let table_schema : String = tables_row.get(1);
-            let table_name : String = tables_row.get(2);
+            queries::GET_TABLES,
+            &[&allowed_schemas]).await.expect("Error retrieving tables") {
+            let table_schema : String = tables_row.get("table_schema");
+            let table_name : String = tables_row.get("table_name");
 
             let attributes_vec: Vec<Attribute> = self.get_table_attributes(&table_schema,&table_name,&client)
                                                         .await
@@ -113,15 +114,11 @@ impl PostgresStorage {
         let mut attributes_vec: Vec<Attribute> = Vec::new();
         
         // For each table, search for its attributes
-        for attributes_row in client.query("
-            SELECT column_name, data_type
-            FROM information_schema.columns
-            WHERE table_schema = $1 AND table_name = $2;
-        ",&[&table_schema,&table_name]).await.unwrap(){
+        for attributes_row in client.query(
+            queries::GET_ATTRIBUTES,
+            &[&table_schema,&table_name]).await.expect("Error retrieving attributes"){
 
-            let column_name : String = attributes_row.get(0);
-            let data_type : String = attributes_row.get(1);
-            let attribute : Attribute = Attribute::new(column_name,data_type);
+            let attribute : Attribute = Attribute::new(attributes_row.get("column_name"),attributes_row.get("data_type"));
 
             attributes_vec.push(attribute);
         }
@@ -133,23 +130,15 @@ impl PostgresStorage {
         let mut primary_keys_vec: Vec<PrimaryKey> = Vec::new();
         
         // For each table, search for its primary_keys
-        for primary_keys_row in client.query("
-            SELECT tc.table_schema,tc.table_name,c.column_name
-            FROM information_schema.table_constraints tc 
-            JOIN information_schema.constraint_column_usage AS ccu USING (constraint_schema, constraint_name) 
-            JOIN information_schema.columns AS c ON c.table_schema = tc.constraint_schema
-              AND tc.table_name = c.table_name AND ccu.column_name = c.column_name
-            WHERE constraint_type = 'PRIMARY KEY' AND tc.table_schema = $1
-            AND tc.table_name = $2;
-        ",&[&table_schema,&table_name]).await.unwrap(){
+        for primary_keys_row in client.query(
+            queries::GET_PRIMARY_KEYS,
+            &[&table_schema,&table_name]).await.expect("Error retrieving primary keys"){
 
-            let schema_name = primary_keys_row.get(0);
-            let table_name = primary_keys_row.get(1);
-            let attribute_name = primary_keys_row.get(2);
             let primary_key : PrimaryKey = PrimaryKey::new(
-                schema_name,
-                table_name,
-                attribute_name);
+                primary_keys_row.get("table_schema"),
+                primary_keys_row.get("table_name"),
+                primary_keys_row.get("column_name"));
+
             primary_keys_vec.push(primary_key);
         }
 
@@ -160,37 +149,18 @@ impl PostgresStorage {
         let mut foreign_keys_vec: Vec<ForeignKey> = Vec::new();
 
         // Search for foreign keys
-        for foreign_keys_rows in client.query("
-            SELECT
-                tc.table_schema, 
-                tc.table_name, 
-                kcu.column_name, 
-                ccu.table_schema AS foreign_table_schema,
-                ccu.table_name AS foreign_table_name,
-                ccu.column_name AS foreign_column_name 
-            FROM information_schema.table_constraints AS tc 
-            JOIN information_schema.key_column_usage AS kcu
-                ON tc.constraint_name = kcu.constraint_name
-                AND tc.table_schema = kcu.table_schema
-            JOIN information_schema.constraint_column_usage AS ccu
-                ON ccu.constraint_name = tc.constraint_name
-            WHERE tc.constraint_type = 'FOREIGN KEY' AND
-            tc.table_schema = any($1) AND ccu.table_schema = any($1);
-        ",&[&allowed_schemas]).await.unwrap(){
-            let schema_name: String = foreign_keys_rows.get(0);
-            let table_name: String =foreign_keys_rows.get(1);
-            let attribute_name: String = foreign_keys_rows.get(2);
-            let schema_name_foreign: String = foreign_keys_rows.get(3);
-            let table_name_foreign: String = foreign_keys_rows.get(4);
-            let attribute_name_foreign: String = foreign_keys_rows.get(5);
-    
+        for foreign_keys_rows in client.query(
+            queries::GET_FOREIGN_KEYS,
+            &[&allowed_schemas]).await.expect("Error retrieving foreign keys"){
+
             let foreign_key : ForeignKey = ForeignKey::new(
-                schema_name,
-                table_name,
-                attribute_name,
-                schema_name_foreign,
-                table_name_foreign,
-                attribute_name_foreign);
+                foreign_keys_rows.get("table_schema"),
+                foreign_keys_rows.get("table_name"),
+                foreign_keys_rows.get("column_name"),
+                foreign_keys_rows.get("foreign_table_schema"),
+                foreign_keys_rows.get("foreign_table_name"),
+                foreign_keys_rows.get("foreign_column_name"));
+
             foreign_keys_vec.push(foreign_key);
 
         }

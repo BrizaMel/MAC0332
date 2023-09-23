@@ -13,7 +13,7 @@ services:
       POSTGRES_DB: search-service
       POSTGRES_HOST_AUTH_METHOD: trust
     volumes: 
-      - db:/var/lib/postgresql/data
+      - sbcbddb:/var/lib/postgresql/data
     healthcheck:
       test: "pg_isready -d search-service -U search-service"   
       interval: 10s
@@ -28,12 +28,12 @@ services:
     environment:
       DB_HOST: search-service-pg
       DB_PORT: 5432
-      ALLOWED_SCHEMAS: public,movies # Schemas the server can query (splitted by ',')
+      ALLOWED_SCHEMAS: public,movies # Schemas the server can query (split by ',')
     entrypoint: [ "bash", "-c", "server run-http-server"]
     depends_on:
       postgresdb:
         condition: service_healthy
 
 volumes:
-  db:
+  sbcbddb:
     driver: local

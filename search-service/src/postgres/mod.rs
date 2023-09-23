@@ -4,7 +4,6 @@ use tokio_postgres::NoTls;
 
 mod queries;
 
-
 use serde::{Deserialize, Serialize};
 pub struct PostgresConfig {
     pub host: String,
@@ -97,11 +96,11 @@ impl PostgresStorage {
 
             let attributes_vec: Vec<Attribute> = self.get_table_attributes(&table_schema,&table_name,&client)
                                                         .await
-                                                        .expect("Error retireving attributes");
+                                                        .expect("Error retrieving attributes");
 
             let primary_keys_vec: Vec<PrimaryKey> = self.get_table_primary_keys(&table_schema,&table_name,&client)
                                                         .await
-                                                        .expect("Error retireving primary keys");
+                                                        .expect("Error retrieving primary keys");
 
             let table : Table = Table::new(table_schema,table_name,attributes_vec,primary_keys_vec);
             table_vec.push(table);
@@ -110,7 +109,7 @@ impl PostgresStorage {
         Ok(table_vec)
     }
 
-    async fn get_table_attributes(&self,table_schema: &String,table_name: &String,client: &Object ) -> Result<Vec<Attribute>> {
+    async fn get_table_attributes(&self,table_schema: &String,table_name: &String,client: &Object ) -> Result<Vec<Attribute>,anyhow::Error> {
         let mut attributes_vec: Vec<Attribute> = Vec::new();
         
         // For each table, search for its attributes
@@ -118,7 +117,9 @@ impl PostgresStorage {
             queries::GET_ATTRIBUTES,
             &[&table_schema,&table_name]).await.expect("Error retrieving attributes"){
 
-            let attribute : Attribute = Attribute::new(attributes_row.get("column_name"),attributes_row.get("data_type"));
+            let attribute : Attribute = Attribute::new(
+                attributes_row.try_get("column_name")?,
+                attributes_row.try_get("data_type")?);
 
             attributes_vec.push(attribute);
         }
@@ -126,7 +127,7 @@ impl PostgresStorage {
         Ok(attributes_vec)
     }
 
-    async fn get_table_primary_keys(&self,table_schema: &String,table_name: &String,client: &Object ) -> Result<Vec<PrimaryKey>> {
+    async fn get_table_primary_keys(&self,table_schema: &String,table_name: &String,client: &Object ) -> Result<Vec<PrimaryKey>,anyhow::Error> {
         let mut primary_keys_vec: Vec<PrimaryKey> = Vec::new();
         
         // For each table, search for its primary_keys
@@ -135,9 +136,9 @@ impl PostgresStorage {
             &[&table_schema,&table_name]).await.expect("Error retrieving primary keys"){
 
             let primary_key : PrimaryKey = PrimaryKey::new(
-                primary_keys_row.get("table_schema"),
-                primary_keys_row.get("table_name"),
-                primary_keys_row.get("column_name"));
+                primary_keys_row.try_get("table_schema")?,
+                primary_keys_row.try_get("table_name")?,
+                primary_keys_row.try_get("column_name")?);
 
             primary_keys_vec.push(primary_key);
         }
@@ -145,21 +146,22 @@ impl PostgresStorage {
         Ok(primary_keys_vec)
     }
 
-    async fn get_db_foreign_keys(&self,client: &Object,allowed_schemas: &Vec<String>) -> Result<Vec<ForeignKey>>{
+    async fn get_db_foreign_keys(&self,client: &Object,allowed_schemas: &Vec<String>) -> Result<Vec<ForeignKey>,anyhow::Error>{
         let mut foreign_keys_vec: Vec<ForeignKey> = Vec::new();
+        let query_error :&str= "Error retrieving foreign keys";
 
         // Search for foreign keys
         for foreign_keys_rows in client.query(
             queries::GET_FOREIGN_KEYS,
-            &[&allowed_schemas]).await.expect("Error retrieving foreign keys"){
+            &[&allowed_schemas]).await.expect(query_error){
 
             let foreign_key : ForeignKey = ForeignKey::new(
-                foreign_keys_rows.get("table_schema"),
-                foreign_keys_rows.get("table_name"),
-                foreign_keys_rows.get("column_name"),
-                foreign_keys_rows.get("foreign_table_schema"),
-                foreign_keys_rows.get("foreign_table_name"),
-                foreign_keys_rows.get("foreign_column_name"));
+                foreign_keys_rows.try_get("table_schema")?,
+                foreign_keys_rows.try_get("table_name")? ,
+                foreign_keys_rows.try_get("column_name")?,
+                foreign_keys_rows.try_get("foreign_table_schema")?,
+                foreign_keys_rows.try_get("foreign_table_name")?,
+                foreign_keys_rows.try_get("foreign_column_name")?);
 
             foreign_keys_vec.push(foreign_key);
 

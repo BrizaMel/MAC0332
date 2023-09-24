@@ -4,7 +4,9 @@ use tokio_postgres::NoTls;
 
 mod queries;
 
-use serde::{Deserialize, Serialize};
+use crate::relational::general::{Attribute, DbSchema, ForeignKey, Table, PrimaryKey};
+use crate::relational::tableSearch::TableSearch;
+
 pub struct PostgresConfig {
     pub host: String,
     pub port: u16,
@@ -79,8 +81,8 @@ impl PostgresStorage {
         let this_client = self.get_client().await.expect("Unable to retrieve Postgres Client");
         let table_vec = self.get_db_tables(&this_client,&allowed_schemas).await.expect("Error retireving Database Tables");
         let foreign_key_vec = self.get_db_foreign_keys(&this_client,&allowed_schemas).await.expect("Error retireving Database Foreign Keys");
+        let please_end_me = TableSearch::new(&table_vec,&foreign_key_vec);
         let db_schema : DbSchema = DbSchema::new(table_vec,foreign_key_vec);
-
         Ok(db_schema)
     }
 
@@ -170,115 +172,4 @@ impl PostgresStorage {
         Ok(foreign_keys_vec)
     }
 
-    pub async fn return_result(&self) -> &str{
-        return "Rebolarion";
-    }
-}
-
-//-----------------------------------------
-// Should the following section of this file be refactored into it's own module?
-//------------------------------------------
-
-
-#[derive(Serialize, Deserialize)]
-pub struct Attribute {
-    name: String,
-    data_type: String
-}
-
-#[derive(Serialize, Deserialize)]
-pub struct Table {
-    schema: String,
-    name: String,
-    attributes: Vec<Attribute>,
-    primary_keys: Vec<PrimaryKey>
-}
-
-#[derive(Serialize, Deserialize)]
-pub struct ForeignKey {
-    schema_name: String,
-    table_name: String,
-    attribute_name: String,
-    schema_name_foreign: String,
-    table_name_foreign: String,
-    attribute_name_foreign: String
-}
-
-#[derive(Serialize, Deserialize)]
-pub struct PrimaryKey {
-    schema_name: String,
-    table_name: String,
-    attribute_name: String,
-}
-
-#[derive(Serialize, Deserialize)]
-pub struct DbSchema {
-    tables: Vec<Table>,
-    foreing_keys : Vec<ForeignKey>,
-}
-
-impl Attribute {
-    pub fn new(arg_name:String,arg_type:String) -> Self {
-        let name = arg_name;
-        let data_type = arg_type;
-        Self {name,data_type}
-    }
-}
-
-impl Table {
-    pub fn new(
-            schema:String,
-            name:String,
-            attributes:Vec<Attribute>,
-            primary_keys:Vec<PrimaryKey>) -> Self {
-        Self {
-            schema,
-            name,
-            attributes,
-            primary_keys
-        }
-    }
-}
-
-impl ForeignKey {
-    pub fn new(
-            schema_name:String,
-            table_name:String,
-            attribute_name:String,
-            schema_name_foreign:String,
-            table_name_foreign:String,
-            attribute_name_foreign:String) -> Self {
-        Self {
-            schema_name,
-            table_name,
-            attribute_name,
-            schema_name_foreign,
-            table_name_foreign,
-            attribute_name_foreign
-        }
-    }
-}
-
-impl PrimaryKey {
-    pub fn new(
-            schema_name:String,
-            table_name:String,
-            attribute_name:String) -> Self {
-        Self {
-            schema_name,
-            table_name,
-            attribute_name,
-        }
-    }
-}
-
-impl DbSchema {
-    pub fn new(
-            tables:Vec<Table>,
-            foreing_keys:Vec<ForeignKey>) -> Self {
-        Self {
-            tables,
-            foreing_keys
-        }
-    }
 }

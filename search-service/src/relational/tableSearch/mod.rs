@@ -42,12 +42,46 @@ impl TableSearch {
 			this_graph.add_edge(*origin_index, *foreign_index, weight);
 		}
 
-		println!("{:?}", Dot::with_config(&this_graph, &[Config::EdgeNoLabel]));
+		println!("{:?}", Dot::new(&this_graph));
 
 		Self { 
 			indexes_dict: this_dict,
 			table_graph: this_graph
 		}
+	}
+
+}
+
+#[cfg(test)]mod tests {
+    // Note this useful idiom: importing names from outer (for mod tests) scope.
+    use super::*;
+
+	// fn initialize_table() -> TableSearch {
+	// 	TableSearch::new(); 
+	// }
+
+    #[test]
+    fn test_creates_empty_table() {
+		TableSearch::new(&Vec::new(),&Vec::new()); 
+    }
+
+	#[test]
+	fn test_creates_only_tables(){
+		TableSearch::new(&Vec::from(
+			[Table::new("A".to_string(),"B".to_string(),Vec::new(),Vec::new())]),
+			&Vec::new()); 
+	}
+
+	#[test]
+	fn test_creates_tables_and_fks(){
+		TableSearch::new(&Vec::from([
+			Table::new("A".to_string(),"B".to_string(),Vec::new(),Vec::new()),
+			Table::new("C".to_string(),"D".to_string(),Vec::new(),Vec::new())]),
+			&Vec::from([
+				ForeignKey::new("A".to_string(), "B".to_string(), 
+					"e".to_string(), "C".to_string(), 
+					"D".to_string(), "f".to_string())
+			])); 
 	}
 
 }

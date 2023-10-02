@@ -3,6 +3,7 @@ use deadpool_postgres::{Manager, ManagerConfig, Object, Pool, RecyclingMethod};
 use tokio_postgres::NoTls;
 
 mod queries;
+mod tests;
 
 use serde::{Deserialize, Serialize};
 pub struct PostgresConfig {
@@ -214,7 +215,7 @@ pub struct PrimaryKey {
 #[derive(Serialize, Deserialize)]
 pub struct DbSchema {
     tables: Vec<Table>,
-    foreing_keys : Vec<ForeignKey>,
+    foreign_keys : Vec<ForeignKey>,
 }
 
 impl Attribute {
@@ -275,10 +276,10 @@ impl PrimaryKey {
 impl DbSchema {
     pub fn new(
             tables:Vec<Table>,
-            foreing_keys:Vec<ForeignKey>) -> Self {
+            foreign_keys:Vec<ForeignKey>) -> Self {
         Self {
             tables,
-            foreing_keys
+            foreign_keys
         }
     }
 }

@@ -1,9 +1,10 @@
 version: "3.8"
 
 services:
-  postgres:
+  postgresdb:
     container_name: search-service-pg
     image: postgres:12-alpine
+    restart: always
     ports:
       - 54329:5432
     environment:
@@ -11,10 +12,28 @@ services:
       POSTGRES_PASSWORD: search-service
       POSTGRES_DB: search-service
       POSTGRES_HOST_AUTH_METHOD: trust
-    
+    volumes: 
+      - sbcbddb:/var/lib/postgresql/data
+    healthcheck:
+      test: "pg_isready -d search-service -U search-service"   
+      interval: 10s
+      timeout: 3s
+      retries: 3
+
   server:
     container_name: search-service-server
     ports:
       - 3000:3000
     build: .
+    environment:
+      DB_HOST: search-service-pg
+      DB_PORT: 5432
+      ALLOWED_SCHEMAS: public,movies # Schemas the server can query (split by ',')
     entrypoint: [ "bash", "-c", "server run-http-server"]
+    depends_on:
+      postgresdb:
+        condition: service_healthy
+
+volumes:
+  sbcbddb:
+    driver: local

@@ -2,7 +2,17 @@
 
 ## Build
 
-Para executar o projeto utilizando o Docker, rode os seguintes comandos:
+To execute the project using Docker, run the following commands:
 
 `cd search-service && docker compose up`
 
+## Environment Variables (inside docker compose)
+
+```
+DB_HOST: dbms host
+DB_PORT: dbms port
+DB_USER: dbms user
+DB_PASS: dbms password
+DB_NAME: database name
+ALLOWED_SCHEMAS: database schemas that can be queried
+``

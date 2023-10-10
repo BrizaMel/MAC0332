@@ -3,8 +3,6 @@
 // of operations involving fields from different tables of a
 // given relational database.
 
-use std::collections::HashMap;
-
 use dict::{Dict, DictIface};
 use petgraph::{
     graph::{Graph, NodeIndex},
@@ -28,22 +26,33 @@ impl TableSearch {
         let mut this_graph = Graph::<String, String, Undirected>::new_undirected();
         let mut this_dict = Dict::<NodeIndex>::new();
 
+        // add all tables as nodes in the graph
         for table in tables {
-            let table_identifier = Clone::clone(&table.schema) + "." + &table.name;
-            let graph_index = this_graph.add_node(Clone::clone(&table_identifier));
+            let table_identifier = format!("{}.{}", table.schema, table.name);
+            let graph_index = this_graph.add_node(table_identifier.clone());
 
             this_dict.add(table_identifier, graph_index);
         }
 
         for fk in foreign_keys {
-            let origin_identifier = Clone::clone(&fk.schema_name) + "." + &fk.table_name;
-            let foreign_identifier =
-                Clone::clone(&fk.schema_name_foreign) + "." + &fk.table_name_foreign;
+            let ForeignKey {
+                schema_name,
+                table_name,
+                attribute_name,
+                schema_name_foreign,
+                table_name_foreign,
+                attribute_name_foreign,
+            } = fk;
 
-            let weight = Clone::clone(&fk.attribute_name) + ":" + &fk.attribute_name_foreign;
+            // we will connect origin table to foreign table
+            let origin_table = format!("{}.{}", schema_name, table_name);
+            let foreign_table = format!("{}.{}", schema_name_foreign, table_name_foreign);
 
-            let origin_index = this_dict.get(&origin_identifier).unwrap();
-            let foreign_index = this_dict.get(&foreign_identifier).unwrap();
+            // the weight of the edge is the foreign key
+            let weight = format!("{}:{}", attribute_name, attribute_name_foreign);
+
+            let origin_index = this_dict.get(&origin_table).unwrap();
+            let foreign_index = this_dict.get(&foreign_table).unwrap();
 
             this_graph.add_edge(*origin_index, *foreign_index, weight);
         }
@@ -56,7 +65,7 @@ impl TableSearch {
         }
     }
 
-    pub fn pathTo(&self, origin: String, destiny: String) -> Vec<&String> {
+    pub fn path_to(&self, origin: String, destiny: String) -> Vec<&String> {
         let origin_index = self.indexes_dict.get(&origin).unwrap();
         let destiny_index = self.indexes_dict.get(&destiny).unwrap();
 
@@ -150,7 +159,7 @@ mod tests {
                 "f".to_string(),
             )]),
         );
-        let res = ts.pathTo("A.B".to_string(), "AA.BB".to_string());
+        let res = ts.path_to("A.B".to_string(), "AA.BB".to_string());
         let expected: Vec<&String> = Vec::from([]);
         assert_eq!(res, expected);
     }
@@ -184,7 +193,7 @@ mod tests {
                 ),
             ]),
         );
-        let res = ts.pathTo("A.B".to_string(), "AA.BB".to_string());
+        let res = ts.path_to("A.B".to_string(), "AA.BB".to_string());
         let node1 = "A.B".to_string();
         let node2 = "C.D".to_string();
         let node3 = "AA.BB".to_string();
@@ -221,7 +230,7 @@ mod tests {
                 ),
             ]),
         );
-        let res = ts.pathTo("A.B".to_string(), "AA.BB".to_string());
+        let res = ts.path_to("A.B".to_string(), "AA.BB".to_string());
         let node1 = "A.B".to_string();
         let node2 = "C.D".to_string();
         let node3 = "AA.BB".to_string();

@@ -93,6 +93,31 @@ impl TableSearch {
 
         nodes
     }
+
+    pub fn joinable_tables(&self, origin: String) -> Vec<&String>{
+		let origin_index = self.indexes_dict.get(&origin).unwrap();
+
+		let mut nodes: Vec<&String> = Vec::new();
+
+		let result_path = dijkstra(
+            &self.table_graph,
+			*origin_index,
+			None,
+			|_| 1
+		);
+		
+		let mut oredered_nodes: Vec<_> = result_path.iter().collect();
+		oredered_nodes.sort_by(|a, b| a.1.cmp(b.1));
+
+		for entry in oredered_nodes{
+			// nodes.set
+			let table_identifier = self.table_graph.node_weight(*entry.0).unwrap();
+			nodes.push(table_identifier);
+		}
+
+		nodes
+	}
+
 }
 
 #[cfg(test)]
@@ -237,4 +262,72 @@ mod tests {
         let expected: Vec<&String> = Vec::from([&node1, &node2, &node3]);
         assert_eq!(res, expected);
     }
+
+    #[test]
+	fn test_all_paths(){
+		let ts = TableSearch::new(
+            &Vec::from([
+                Table::new("A".to_string(),"B".to_string(),Vec::new(),Vec::new()),
+                Table::new("C".to_string(),"D".to_string(),Vec::new(), Vec::new()),
+                Table::new("AA".to_string(),"BB".to_string(),Vec::new(),Vec::new()),
+                Table::new("CC".to_string(),"DD".to_string(),Vec::new(),Vec::new()),
+			]),
+			&Vec::from([
+				ForeignKey::new(
+                    "A".to_string(),
+                    "B".to_string(), 
+					"e".to_string(),
+                    "C".to_string(), 
+					"D".to_string(),
+                    "f".to_string()
+                ),
+                ForeignKey::new(
+                    "A".to_string(),
+                    "B".to_string(),
+					"g".to_string(),
+                    "AA".to_string(), 
+					"BB".to_string(),
+                    "h".to_string()
+                ),
+			])); 
+		let res = ts.joinable_tables("A.B".to_string());
+		let node1 = "A.B".to_string();
+		let node2 = "AA.BB".to_string();
+		let node3 = "C.D".to_string();
+		let expected: Vec<&String> = Vec::from([&node1, &node2, &node3]);
+        assert!(res.iter().all(|item| expected.contains(item)));
+	}
+
+    #[test]
+	fn test_no_joins(){
+		let ts = TableSearch::new(
+            &Vec::from([
+                Table::new("A".to_string(),"B".to_string(),Vec::new(),Vec::new()),
+                Table::new("C".to_string(),"D".to_string(),Vec::new(), Vec::new()),
+                Table::new("AA".to_string(),"BB".to_string(),Vec::new(),Vec::new()),
+                Table::new("CC".to_string(),"DD".to_string(),Vec::new(),Vec::new()),
+			]),
+			&Vec::from([
+				ForeignKey::new(
+                    "A".to_string(),
+                    "B".to_string(), 
+					"e".to_string(),
+                    "C".to_string(), 
+					"D".to_string(),
+                    "f".to_string()
+                ),
+                ForeignKey::new(
+                    "A".to_string(),
+                    "B".to_string(),
+					"g".to_string(),
+                    "AA".to_string(), 
+					"BB".to_string(),
+                    "h".to_string()
+                ),
+			])); 
+		let res = ts.joinable_tables("CC.DD".to_string());
+        let node = "CC.DD".to_string();
+		let expected: Vec<&String> = Vec::from([&node]);
+        assert_eq!(res, expected);
+	}
 }

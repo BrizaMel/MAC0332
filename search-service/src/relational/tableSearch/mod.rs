@@ -5,10 +5,11 @@
 
 use dict::{Dict, DictIface};
 use petgraph::{
+    algo::dijkstra,
+    dot::Dot, //Used for debugging graphs
     graph::{Graph, NodeIndex},
     Undirected,
 }; // Graph used to represent foreign key links
-   // use union_find::QuickFindUf; // Union Find used to quickly determine if an operation is possible
 
 use crate::relational::general::{ForeignKey, Table};
 
@@ -65,11 +66,9 @@ impl TableSearch {
         }
     }
 
-    pub fn path_to(&self, origin: String, destiny: String) -> Vec<&String> {
+    pub fn path_to(&self, origin: String, destiny: String) -> (Vec<&String>, Vec<&String>) {
         let origin_index = self.indexes_dict.get(&origin).unwrap();
         let destiny_index = self.indexes_dict.get(&destiny).unwrap();
-
-        let mut nodes: Vec<&String> = Vec::new();
 
         let result_path = dijkstra(
             &self.table_graph,
@@ -77,6 +76,42 @@ impl TableSearch {
             Some(*destiny_index),
             |_| 1,
         );
+
+        let mut ordered_nodes: Vec<_> = result_path.iter().collect();
+        ordered_nodes.sort_by(|a, b| a.1.cmp(b.1));
+
+        let mut tables = Vec::new();
+        let mut ordered_edges = Vec::new();
+
+        for i in 0..ordered_nodes.len() {
+            let node_index = ordered_nodes[i].0;
+            let table_identifier = self.table_graph.node_weight(*node_index).unwrap();
+            tables.push(table_identifier);
+
+            if i > 0 {
+                let edge = self
+                    .table_graph
+                    .find_edge(*ordered_nodes[i - 1].0, *node_index)
+                    .unwrap();
+
+                ordered_edges.push(self.table_graph.edge_weight(edge).unwrap())
+            }
+        }
+
+        if *tables[tables.len() - 1] != destiny {
+            tables = Vec::new();
+            ordered_edges = Vec::new();
+        }
+
+        (tables, ordered_edges)
+    }
+
+    pub fn joinable_tables(&self, origin: String) -> Vec<&String> {
+        let origin_index = self.indexes_dict.get(&origin).unwrap();
+
+        let mut nodes: Vec<&String> = Vec::new();
+
+        let result_path = dijkstra(&self.table_graph, *origin_index, None, |_| 1);
 
         let mut oredered_nodes: Vec<_> = result_path.iter().collect();
         oredered_nodes.sort_by(|a, b| a.1.cmp(b.1));
@@ -87,37 +122,8 @@ impl TableSearch {
             nodes.push(table_identifier);
         }
 
-        if nodes[nodes.len() - 1] != &destiny {
-            nodes = Vec::new();
-        }
-
         nodes
     }
-
-    pub fn joinable_tables(&self, origin: String) -> Vec<&String>{
-		let origin_index = self.indexes_dict.get(&origin).unwrap();
-
-		let mut nodes: Vec<&String> = Vec::new();
-
-		let result_path = dijkstra(
-            &self.table_graph,
-			*origin_index,
-			None,
-			|_| 1
-		);
-		
-		let mut oredered_nodes: Vec<_> = result_path.iter().collect();
-		oredered_nodes.sort_by(|a, b| a.1.cmp(b.1));
-
-		for entry in oredered_nodes{
-			// nodes.set
-			let table_identifier = self.table_graph.node_weight(*entry.0).unwrap();
-			nodes.push(table_identifier);
-		}
-
-		nodes
-	}
-
 }
 
 #[cfg(test)]
@@ -185,7 +191,9 @@ mod tests {
             )]),
         );
         let res = ts.path_to("A.B".to_string(), "AA.BB".to_string());
-        let expected: Vec<&String> = Vec::from([]);
+        let expected_nodes: Vec<&String> = Vec::from([]);
+        let expected_edges: Vec<&String> = Vec::from([]);
+        let expected = (expected_nodes, expected_edges);
         assert_eq!(res, expected);
     }
 
@@ -222,7 +230,11 @@ mod tests {
         let node1 = "A.B".to_string();
         let node2 = "C.D".to_string();
         let node3 = "AA.BB".to_string();
-        let expected: Vec<&String> = Vec::from([&node1, &node2, &node3]);
+        let expected_nodes: Vec<&String> = Vec::from([&node1, &node2, &node3]);
+        let edge1 = "e:f".to_string();
+        let edge2 = "g:h".to_string();
+        let expected_edges: Vec<&String> = Vec::from([&edge1, &edge2]);
+        let expected = (expected_nodes, expected_edges);
         assert_eq!(res, expected);
     }
 
@@ -259,75 +271,81 @@ mod tests {
         let node1 = "A.B".to_string();
         let node2 = "C.D".to_string();
         let node3 = "AA.BB".to_string();
-        let expected: Vec<&String> = Vec::from([&node1, &node2, &node3]);
+        let expected_nodes: Vec<&String> = Vec::from([&node1, &node2, &node3]);
+        let edge1 = "e:f".to_string();
+        let edge2 = "g:h".to_string();
+        let expected_edges: Vec<&String> = Vec::from([&edge1, &edge2]);
+        let expected = (expected_nodes, expected_edges);
         assert_eq!(res, expected);
     }
 
     #[test]
-	fn test_all_paths(){
-		let ts = TableSearch::new(
+    fn test_all_paths() {
+        let ts = TableSearch::new(
             &Vec::from([
-                Table::new("A".to_string(),"B".to_string(),Vec::new(),Vec::new()),
-                Table::new("C".to_string(),"D".to_string(),Vec::new(), Vec::new()),
-                Table::new("AA".to_string(),"BB".to_string(),Vec::new(),Vec::new()),
-                Table::new("CC".to_string(),"DD".to_string(),Vec::new(),Vec::new()),
-			]),
-			&Vec::from([
-				ForeignKey::new(
+                Table::new("A".to_string(), "B".to_string(), Vec::new(), Vec::new()),
+                Table::new("C".to_string(), "D".to_string(), Vec::new(), Vec::new()),
+                Table::new("AA".to_string(), "BB".to_string(), Vec::new(), Vec::new()),
+                Table::new("CC".to_string(), "DD".to_string(), Vec::new(), Vec::new()),
+            ]),
+            &Vec::from([
+                ForeignKey::new(
                     "A".to_string(),
-                    "B".to_string(), 
-					"e".to_string(),
-                    "C".to_string(), 
-					"D".to_string(),
-                    "f".to_string()
+                    "B".to_string(),
+                    "e".to_string(),
+                    "C".to_string(),
+                    "D".to_string(),
+                    "f".to_string(),
                 ),
                 ForeignKey::new(
                     "A".to_string(),
                     "B".to_string(),
-					"g".to_string(),
-                    "AA".to_string(), 
-					"BB".to_string(),
-                    "h".to_string()
+                    "g".to_string(),
+                    "AA".to_string(),
+                    "BB".to_string(),
+                    "h".to_string(),
                 ),
-			])); 
-		let res = ts.joinable_tables("A.B".to_string());
-		let node1 = "A.B".to_string();
-		let node2 = "AA.BB".to_string();
-		let node3 = "C.D".to_string();
-		let expected: Vec<&String> = Vec::from([&node1, &node2, &node3]);
+            ]),
+        );
+        let res = ts.joinable_tables("A.B".to_string());
+        let node1 = "A.B".to_string();
+        let node2 = "AA.BB".to_string();
+        let node3 = "C.D".to_string();
+        let expected: Vec<&String> = Vec::from([&node1, &node2, &node3]);
         assert!(res.iter().all(|item| expected.contains(item)));
-	}
+    }
 
     #[test]
-	fn test_no_joins(){
-		let ts = TableSearch::new(
+    fn test_no_joins() {
+        let ts = TableSearch::new(
             &Vec::from([
-                Table::new("A".to_string(),"B".to_string(),Vec::new(),Vec::new()),
-                Table::new("C".to_string(),"D".to_string(),Vec::new(), Vec::new()),
-                Table::new("AA".to_string(),"BB".to_string(),Vec::new(),Vec::new()),
-                Table::new("CC".to_string(),"DD".to_string(),Vec::new(),Vec::new()),
-			]),
-			&Vec::from([
-				ForeignKey::new(
+                Table::new("A".to_string(), "B".to_string(), Vec::new(), Vec::new()),
+                Table::new("C".to_string(), "D".to_string(), Vec::new(), Vec::new()),
+                Table::new("AA".to_string(), "BB".to_string(), Vec::new(), Vec::new()),
+                Table::new("CC".to_string(), "DD".to_string(), Vec::new(), Vec::new()),
+            ]),
+            &Vec::from([
+                ForeignKey::new(
                     "A".to_string(),
-                    "B".to_string(), 
-					"e".to_string(),
-                    "C".to_string(), 
-					"D".to_string(),
-                    "f".to_string()
+                    "B".to_string(),
+                    "e".to_string(),
+                    "C".to_string(),
+                    "D".to_string(),
+                    "f".to_string(),
                 ),
                 ForeignKey::new(
                     "A".to_string(),
                     "B".to_string(),
-					"g".to_string(),
-                    "AA".to_string(), 
-					"BB".to_string(),
-                    "h".to_string()
+                    "g".to_string(),
+                    "AA".to_string(),
+                    "BB".to_string(),
+                    "h".to_string(),
                 ),
-			])); 
-		let res = ts.joinable_tables("CC.DD".to_string());
+            ]),
+        );
+        let res = ts.joinable_tables("CC.DD".to_string());
         let node = "CC.DD".to_string();
-		let expected: Vec<&String> = Vec::from([&node]);
+        let expected: Vec<&String> = Vec::from([&node]);
         assert_eq!(res, expected);
-	}
+    }
 }

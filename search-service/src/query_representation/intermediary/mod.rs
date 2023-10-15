@@ -3,6 +3,8 @@
 	of a query.
 */
 
+use anyhow::Error;
+
 mod tests;
 
 #[derive(PartialEq, Debug)]
@@ -37,7 +39,7 @@ pub struct Value {
 
 #[derive(PartialEq, Debug)]
 pub struct SimpleCommand {
-    property: String,
+    attribute: String,
     operator: Operator,
     value: Value,
 }
@@ -45,7 +47,7 @@ pub struct SimpleCommand {
 #[derive(PartialEq, Debug)]
 pub struct CompositeCommand {
 	operation: Operation,
-	command: Vec<Command>,
+	commands: Vec<Command>,
 }
 
 
@@ -56,13 +58,42 @@ impl Value {
 }
 
 impl SimpleCommand {
-    pub fn new(property:String,operator:Operator,value:Value) -> Self {
-        Self {property,operator,value}
+    pub fn new(attribute:String,operator:Operator,value:Value) -> Self {
+        Self {attribute,operator,value}
     }
 }
 
 impl CompositeCommand {
-    pub fn new(operation:Operation,command:Vec<Command>) -> Self {
-        Self {operation,command}
+    pub fn new(operation:Operation,commands:Vec<Command>) -> Self {
+        Self {operation,commands}
     }
+}
+
+pub fn get_command_attributes(command:&Command) -> Result<Vec<String>,Error> {
+
+	let mut command_attributes = Vec::new();
+
+	match command {
+
+		Command::CompositeCommand(_) => {
+			let Command::CompositeCommand(ref composite_command) = command else {  panic!("Wrong Command type");};
+			let nested_commands = &composite_command.commands;
+			for nested_command in nested_commands.iter() {
+				let mut nested_command_attributes = get_command_attributes(&nested_command)?;
+				command_attributes.append(&mut nested_command_attributes);
+			}
+		}
+
+		Command::SimpleCommand(_) => {
+			let Command::SimpleCommand(ref simple_command) = command else {  panic!("Wrong Command type");};
+			let attribute = simple_command.attribute.to_owned();
+			command_attributes.push(attribute);
+		}
+	}
+
+	command_attributes.sort();
+	command_attributes.dedup();
+
+	Ok(command_attributes)
+
 }

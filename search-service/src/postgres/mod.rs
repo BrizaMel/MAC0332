@@ -95,7 +95,7 @@ impl PostgresStorage {
             .get_db_foreign_keys(&this_client, &allowed_schemas)
             .await
             .expect("Error retireving Database Foreign Keys");
-        let please_end_me = TableSearch::new(&table_vec, &foreign_key_vec);
+        let _please_end_me = TableSearch::new(&table_vec, &foreign_key_vec);
         let db_schema: DbSchema = DbSchema::new(table_vec, foreign_key_vec);
         Ok(db_schema)
     }

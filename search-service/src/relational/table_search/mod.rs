@@ -3,6 +3,7 @@
 // of operations involving fields from different tables of a
 // given relational database.
 
+use anyhow::{anyhow, Result};
 use dict::{Dict, DictIface};
 use petgraph::{
     algo::dijkstra,
@@ -66,63 +67,68 @@ impl TableSearch {
         }
     }
 
-    pub fn path_to(&self, origin: String, destiny: String) -> (Vec<&String>, Vec<&String>) {
-        let origin_index = self.indexes_dict.get(&origin).unwrap();
-        let destiny_index = Some(*self.indexes_dict.get(&destiny).unwrap());
+    pub fn path_to(&self, origin: String, destiny: String) -> Result<(Vec<String>, Vec<String>)> {
+        let origin_index = self
+            .indexes_dict
+            .get(&origin)
+            .ok_or_else(|| anyhow!("origin table not found in graph"))?;
+        let destiny_index = self
+            .indexes_dict
+            .get(&destiny)
+            .ok_or_else(|| anyhow!("destiny table not found in graph"))?;
 
-        let (mut tables, mut ordered_edges) = self.get_paths(origin_index, destiny_index);
+        let (mut tables, mut ordered_edges) = self.get_paths(*origin_index, Some(*destiny_index));
 
-        if *tables[tables.len() - 1] != destiny {
-            tables = Vec::new();
-            ordered_edges = Vec::new();
+        if let Some(last_table) = tables.last() {
+            if *last_table != destiny {
+                tables = vec![];
+                ordered_edges = vec![];
+            }
         }
 
-        (tables, ordered_edges)
+        Ok((tables, ordered_edges))
     }
 
-    pub fn joinable_tables(&self, origin: String) -> (Vec<&String>, Vec<&String>) {
-        let origin_index = self.indexes_dict.get(&origin).unwrap();
-        let destiny_index: Option<_> = None;
-
-        let (tables, ordered_edges) = self.get_paths(origin_index, destiny_index);
-
-        (tables, ordered_edges)
+    pub fn joinable_tables(&self, origin: String) -> Result<(Vec<String>, Vec<String>)> {
+        let origin_index = self
+            .indexes_dict
+            .get(&origin)
+            .ok_or_else(|| anyhow!("origin table not found in graph"))?;
+        let (tables, ordered_edges) = self.get_paths(*origin_index, None);
+        Ok((tables, ordered_edges))
     }
-
-    // private methods
 
     fn get_paths(
         &self,
-        origin_index: &NodeIndex,
+        origin_index: NodeIndex,
         destiny_index: Option<NodeIndex>,
-    ) -> (Vec<&String>, Vec<&String>) {
-        let result_path = dijkstra(&self.table_graph, *origin_index, destiny_index, |_| 1);
+    ) -> (Vec<String>, Vec<String>) {
+        let node_to_path_cost = dijkstra(&self.table_graph, origin_index, destiny_index, |_| 1);
 
-        let mut ordered_nodes: Vec<_> = result_path.iter().collect();
-        ordered_nodes.sort_by(|a, b| a.1.cmp(b.1));
+        let mut ordered_nodes: Vec<(NodeIndex, i32)> = node_to_path_cost.into_iter().collect();
+        ordered_nodes.sort_by(|a, b| a.1.cmp(&b.1));
 
-        let mut tables = Vec::new();
-        let mut ordered_edges = Vec::new();
+        let mut tables = vec![];
+        let mut ordered_edges = vec![];
 
-        let nodes_length;
-        if destiny_index == None {
-            nodes_length = ordered_nodes.len() - 1;
-        } else {
-            nodes_length = ordered_nodes.len();
-        }
+        let num_of_nodes = match destiny_index {
+            None => ordered_nodes.len() - 1,
+            Some(_) => ordered_nodes.len(),
+        };
 
         for i in 0..ordered_nodes.len() {
-            let node_index = ordered_nodes[i].0;
-            let table_identifier = self.table_graph.node_weight(*node_index).unwrap();
-            tables.push(table_identifier);
+            let (node_index, _) = ordered_nodes[i];
+            let table_identifier = self.table_graph.node_weight(node_index).unwrap();
+            tables.push(table_identifier.clone());
 
-            if i > 0 && i < nodes_length {
+            if i > 0 && i < num_of_nodes {
+                let (previous_node_index, _) = ordered_nodes[i - 1];
                 let edge = self
                     .table_graph
-                    .find_edge(*ordered_nodes[i - 1].0, *node_index)
+                    .find_edge(previous_node_index, node_index)
                     .unwrap();
 
-                ordered_edges.push(self.table_graph.edge_weight(edge).unwrap())
+                ordered_edges.push(self.table_graph.edge_weight(edge).unwrap().clone())
             }
         }
 
@@ -176,7 +182,7 @@ mod tests {
     }
 
     #[test]
-    fn test_no_path() {
+    fn test_no_path() -> Result<()> {
         let ts = TableSearch::new(
             &Vec::from([
                 Table::new("A".to_string(), "B".to_string(), Vec::new(), Vec::new()),
@@ -194,15 +200,17 @@ mod tests {
                 "f".to_string(),
             )]),
         );
-        let res = ts.path_to("A.B".to_string(), "AA.BB".to_string());
-        let expected_nodes: Vec<&String> = Vec::from([]);
-        let expected_edges: Vec<&String> = Vec::from([]);
+        let res = ts.path_to("A.B".to_string(), "AA.BB".to_string())?;
+        let expected_nodes: Vec<String> = vec![];
+        let expected_edges: Vec<String> = vec![];
         let expected = (expected_nodes, expected_edges);
         assert_eq!(res, expected);
+
+        Ok(())
     }
 
     #[test]
-    fn test_ordered_edges() {
+    fn test_ordered_edges() -> Result<()> {
         let ts = TableSearch::new(
             &Vec::from([
                 Table::new("A".to_string(), "B".to_string(), Vec::new(), Vec::new()),
@@ -230,20 +238,22 @@ mod tests {
                 ),
             ]),
         );
-        let res = ts.path_to("A.B".to_string(), "AA.BB".to_string());
+        let res = ts.path_to("A.B".to_string(), "AA.BB".to_string())?;
         let node1 = "A.B".to_string();
         let node2 = "C.D".to_string();
         let node3 = "AA.BB".to_string();
-        let expected_nodes: Vec<&String> = Vec::from([&node1, &node2, &node3]);
+        let expected_nodes: Vec<String> = Vec::from([node1, node2, node3]);
         let edge1 = "e:f".to_string();
         let edge2 = "g:h".to_string();
-        let expected_edges: Vec<&String> = Vec::from([&edge1, &edge2]);
+        let expected_edges: Vec<String> = Vec::from([edge1, edge2]);
         let expected = (expected_nodes, expected_edges);
         assert_eq!(res, expected);
+
+        Ok(())
     }
 
     #[test]
-    fn test_inverted_edges() {
+    fn test_inverted_edges() -> Result<()> {
         let ts = TableSearch::new(
             &Vec::from([
                 Table::new("A".to_string(), "B".to_string(), Vec::new(), Vec::new()),
@@ -271,20 +281,22 @@ mod tests {
                 ),
             ]),
         );
-        let res = ts.path_to("A.B".to_string(), "AA.BB".to_string());
+        let res = ts.path_to("A.B".to_string(), "AA.BB".to_string())?;
         let node1 = "A.B".to_string();
         let node2 = "C.D".to_string();
         let node3 = "AA.BB".to_string();
-        let expected_nodes: Vec<&String> = Vec::from([&node1, &node2, &node3]);
+        let expected_nodes: Vec<String> = Vec::from([node1, node2, node3]);
         let edge1 = "e:f".to_string();
         let edge2 = "g:h".to_string();
-        let expected_edges: Vec<&String> = Vec::from([&edge1, &edge2]);
+        let expected_edges: Vec<String> = Vec::from([edge1, edge2]);
         let expected = (expected_nodes, expected_edges);
         assert_eq!(res, expected);
+
+        Ok(())
     }
 
     #[test]
-    fn test_all_joins() {
+    fn test_all_joins() -> Result<()> {
         let ts = TableSearch::new(
             &Vec::from([
                 Table::new("A".to_string(), "B".to_string(), Vec::new(), Vec::new()),
@@ -311,22 +323,24 @@ mod tests {
                 ),
             ]),
         );
-        let res = ts.joinable_tables("A.B".to_string());
+        let res = ts.joinable_tables("A.B".to_string())?;
         let node1 = "A.B".to_string();
         let node2 = "AA.BB".to_string();
         let node3 = "C.D".to_string();
-        let expected_nodes: Vec<&String> = Vec::from([&node1, &node2, &node3]);
+        let expected_nodes: Vec<String> = Vec::from([node1, node2, node3]);
         let edge1 = "e:f".to_string();
         let edge2 = "g:h".to_string();
-        let expected_edges: Vec<&String> = Vec::from([&edge1, &edge2]);
+        let expected_edges: Vec<String> = Vec::from([edge1, edge2]);
         assert!(
             res.0.iter().all(|item| expected_nodes.contains(item))
                 && res.1.iter().all(|item| expected_edges.contains(item))
         );
+
+        Ok(())
     }
 
     #[test]
-    fn test_no_joins() {
+    fn test_no_joins() -> Result<()> {
         let ts = TableSearch::new(
             &Vec::from([
                 Table::new("A".to_string(), "B".to_string(), Vec::new(), Vec::new()),
@@ -353,11 +367,13 @@ mod tests {
                 ),
             ]),
         );
-        let res = ts.joinable_tables("CC.DD".to_string());
+        let res = ts.joinable_tables("CC.DD".to_string())?;
         let node = "CC.DD".to_string();
-        let expected_nodes: Vec<&String> = Vec::from([&node]);
-        let expected_edges: Vec<&String> = Vec::from([]);
+        let expected_nodes: Vec<String> = Vec::from([node]);
+        let expected_edges: Vec<String> = Vec::from([]);
         let expected = (expected_nodes, expected_edges);
         assert_eq!(res, expected);
+
+        Ok(())
     }
 }

@@ -6,7 +6,7 @@ mod queries;
 mod tests;
 
 use crate::relational::general::{Attribute, DbSchema, ForeignKey, PrimaryKey, Table};
-use crate::relational::tableSearch::TableSearch;
+use crate::relational::table_search::TableSearch;
 
 pub struct PostgresConfig {
     pub host: String,

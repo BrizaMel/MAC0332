@@ -3,8 +3,9 @@
 // of operations involving fields from different tables of a
 // given relational database.
 pub mod entities;
+pub mod errors;
 
-use anyhow::{anyhow, Result};
+use anyhow::Result;
 use petgraph::{
     algo::dijkstra,
     dot::Dot,
@@ -15,7 +16,7 @@ use std::collections::HashMap;
 
 use crate::relational::entities::ForeignKey;
 
-use self::entities::TableSearchInfo;
+use self::{entities::TableSearchInfo, errors::TableSearchError};
 
 pub struct TableSearch {
     // maps table identifiers (in the format schema_name.table_name) to their corresponding node indices in the graph
@@ -68,17 +69,22 @@ impl TableSearch {
         }
     }
 
-    pub fn path_to(&self, origin: String, destiny: String) -> Result<(Vec<String>, Vec<String>)> {
+    pub fn path_to(
+        &self,
+        origin: String,
+        destiny: String,
+    ) -> Result<(Vec<String>, Vec<String>), TableSearchError> {
         let origin_index = self
             .table_identifier_to_node_index
             .get(&origin)
-            .ok_or_else(|| anyhow!("origin table not found in graph"))?;
+            .ok_or_else(|| TableSearchError::TableNotFoundInGraph(origin))?;
         let destiny_index = self
             .table_identifier_to_node_index
             .get(&destiny)
-            .ok_or_else(|| anyhow!("destiny table not found in graph"))?;
+            .ok_or_else(|| TableSearchError::TableNotFoundInGraph(destiny.clone()))?;
 
-        let (mut tables, mut ordered_edges) = self.get_paths(*origin_index, Some(*destiny_index));
+        let (mut tables, mut ordered_edges) =
+            self.get_paths(*origin_index, Some(*destiny_index))?;
 
         if let Some(last_table) = tables.last() {
             if *last_table != destiny {
@@ -94,8 +100,8 @@ impl TableSearch {
         let origin_index = self
             .table_identifier_to_node_index
             .get(&origin)
-            .ok_or_else(|| anyhow!("origin table not found in graph"))?;
-        let (tables, ordered_edges) = self.get_paths(*origin_index, None);
+            .ok_or_else(|| TableSearchError::TableNotFoundInGraph(origin))?;
+        let (tables, ordered_edges) = self.get_paths(*origin_index, None)?;
         Ok((tables, ordered_edges))
     }
 
@@ -103,7 +109,7 @@ impl TableSearch {
         &self,
         origin_index: NodeIndex,
         destiny_index: Option<NodeIndex>,
-    ) -> (Vec<String>, Vec<String>) {
+    ) -> Result<(Vec<String>, Vec<String>), TableSearchError> {
         let node_to_path_cost =
             dijkstra(&self.table_search_graph, origin_index, destiny_index, |_| 1);
 
@@ -130,11 +136,16 @@ impl TableSearch {
                     .find_edge(previous_node_index, node_index)
                     .unwrap();
 
-                ordered_edges.push(self.table_search_graph.edge_weight(edge).unwrap().clone())
+                let edge_weight = self
+                    .table_search_graph
+                    .edge_weight(edge)
+                    .ok_or_else(|| TableSearchError::EdgeNotFoundInGraph)?;
+
+                ordered_edges.push(edge_weight.into())
             }
         }
 
-        (tables, ordered_edges)
+        Ok((tables, ordered_edges))
     }
 }
 

@@ -15,4 +15,10 @@ DB_USER: dbms user
 DB_PASS: dbms password
 DB_NAME: database name
 ALLOWED_SCHEMAS: database schemas that can be queried
-``
+```
+
+## Tests
+
+To execute the tests, make sure the database is correctly populated, then run:
+
+`cargo test`

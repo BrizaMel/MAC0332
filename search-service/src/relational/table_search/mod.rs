@@ -2,6 +2,7 @@
 // The struct is responsible for dealing with the feasibility
 // of operations involving fields from different tables of a
 // given relational database.
+pub mod entities;
 
 use anyhow::{anyhow, Result};
 use petgraph::{
@@ -12,18 +13,19 @@ use petgraph::{
 };
 use std::collections::HashMap;
 
-use crate::relational::entities::{ForeignKey, Table};
+use crate::relational::entities::ForeignKey;
+
+use self::entities::TableSearchInfo;
 
 pub struct TableSearch {
     // maps table identifiers (in the format schema_name.table_name) to their corresponding node indices in the graph
     table_identifier_to_node_index: HashMap<String, NodeIndex>,
     // undirected graph: nodes represent tables and edges represent foreign keys
     table_search_graph: Graph<String, String, Undirected>,
-    // Is the UF really necessary?
 }
 
 impl TableSearch {
-    pub fn new(tables: &[Table], foreign_keys: &[ForeignKey]) -> Self {
+    pub fn new(tables: &[TableSearchInfo], foreign_keys: &[ForeignKey]) -> Self {
         let mut table_search_graph = Graph::<String, String, Undirected>::new_undirected();
         let table_identifier_to_node_index = tables
             .iter()
@@ -144,8 +146,8 @@ mod tests {
     fn should_create_tables_and_foreign_keys() {
         TableSearch::new(
             &[
-                Table::new("A".to_string(), "B".to_string(), vec![], vec![]),
-                Table::new("C".to_string(), "D".to_string(), vec![], vec![]),
+                TableSearchInfo::new("A".to_string(), "B".to_string()),
+                TableSearchInfo::new("C".to_string(), "D".to_string()),
             ],
             &[ForeignKey::new(
                 "A".to_string(),
@@ -162,9 +164,9 @@ mod tests {
     fn should_find_no_path() -> Result<()> {
         let ts = TableSearch::new(
             &[
-                Table::new("A".to_string(), "B".to_string(), vec![], vec![]),
-                Table::new("C".to_string(), "D".to_string(), vec![], vec![]),
-                Table::new("AA".to_string(), "BB".to_string(), vec![], vec![]),
+                TableSearchInfo::new("A".to_string(), "B".to_string()),
+                TableSearchInfo::new("C".to_string(), "D".to_string()),
+                TableSearchInfo::new("AA".to_string(), "BB".to_string()),
             ],
             &[ForeignKey::new(
                 "A".to_string(),
@@ -188,9 +190,9 @@ mod tests {
     fn should_find_path() -> Result<()> {
         let ts = TableSearch::new(
             &[
-                Table::new("A".to_string(), "B".to_string(), vec![], vec![]),
-                Table::new("C".to_string(), "D".to_string(), vec![], vec![]),
-                Table::new("AA".to_string(), "BB".to_string(), vec![], vec![]),
+                TableSearchInfo::new("A".to_string(), "B".to_string()),
+                TableSearchInfo::new("C".to_string(), "D".to_string()),
+                TableSearchInfo::new("AA".to_string(), "BB".to_string()),
             ],
             &[ForeignKey::new(
                 "A".to_string(),
@@ -214,9 +216,9 @@ mod tests {
     fn should_find_path_2() -> Result<()> {
         let ts = TableSearch::new(
             &[
-                Table::new("A".to_string(), "B".to_string(), vec![], vec![]),
-                Table::new("C".to_string(), "D".to_string(), vec![], vec![]),
-                Table::new("AA".to_string(), "BB".to_string(), vec![], vec![]),
+                TableSearchInfo::new("A".to_string(), "B".to_string()),
+                TableSearchInfo::new("C".to_string(), "D".to_string()),
+                TableSearchInfo::new("AA".to_string(), "BB".to_string()),
             ],
             &[
                 ForeignKey::new(
@@ -251,9 +253,9 @@ mod tests {
     fn should_find_path_when_edges_are_inverted() -> Result<()> {
         let ts = TableSearch::new(
             &[
-                Table::new("A".to_string(), "B".to_string(), vec![], vec![]),
-                Table::new("C".to_string(), "D".to_string(), vec![], vec![]),
-                Table::new("AA".to_string(), "BB".to_string(), vec![], vec![]),
+                TableSearchInfo::new("A".to_string(), "B".to_string()),
+                TableSearchInfo::new("C".to_string(), "D".to_string()),
+                TableSearchInfo::new("AA".to_string(), "BB".to_string()),
             ],
             &[
                 ForeignKey::new(
@@ -287,10 +289,10 @@ mod tests {
     fn should_find_all_joinable_tables() -> Result<()> {
         let ts = TableSearch::new(
             &[
-                Table::new("A".to_string(), "B".to_string(), vec![], vec![]),
-                Table::new("C".to_string(), "D".to_string(), vec![], vec![]),
-                Table::new("AA".to_string(), "BB".to_string(), vec![], vec![]),
-                Table::new("CC".to_string(), "DD".to_string(), vec![], vec![]),
+                TableSearchInfo::new("A".to_string(), "B".to_string()),
+                TableSearchInfo::new("C".to_string(), "D".to_string()),
+                TableSearchInfo::new("AA".to_string(), "BB".to_string()),
+                TableSearchInfo::new("CC".to_string(), "DD".to_string()),
             ],
             &[
                 ForeignKey::new(
@@ -329,10 +331,10 @@ mod tests {
     fn should_find_all_joinable_tables_2() -> Result<()> {
         let ts = TableSearch::new(
             &[
-                Table::new("A".to_string(), "B".to_string(), Vec::new(), Vec::new()),
-                Table::new("C".to_string(), "D".to_string(), Vec::new(), Vec::new()),
-                Table::new("AA".to_string(), "BB".to_string(), Vec::new(), Vec::new()),
-                Table::new("CC".to_string(), "DD".to_string(), Vec::new(), Vec::new()),
+                TableSearchInfo::new("A".to_string(), "B".to_string()),
+                TableSearchInfo::new("C".to_string(), "D".to_string()),
+                TableSearchInfo::new("AA".to_string(), "BB".to_string()),
+                TableSearchInfo::new("CC".to_string(), "DD".to_string()),
             ],
             &[
                 ForeignKey::new(

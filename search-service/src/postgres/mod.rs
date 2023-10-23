@@ -4,7 +4,7 @@ use tokio_postgres::NoTls;
 
 mod queries;
 
-use crate::relational::general::{Attribute, DbSchema, ForeignKey, PrimaryKey, Table};
+use crate::relational::entities::{Attribute, DbSchema, ForeignKey, PrimaryKey, Table};
 use crate::relational::table_search::TableSearch;
 
 pub struct PostgresConfig {

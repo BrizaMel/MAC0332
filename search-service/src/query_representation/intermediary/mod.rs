@@ -3,16 +3,17 @@
 	of a query.
 */
 
-use anyhow::Error;
-use crate::traits::{Component,Visitor};
-
+pub mod simple_command;
+pub mod composite_command;
 pub mod tests;
 
-#[derive(PartialEq, Debug)]
-pub enum DataType {
-	Integer,
-	String,
-}
+use anyhow::Error;
+
+use crate::traits::{Component,Visitor};
+
+use crate::query_representation::intermediary::simple_command::SimpleCommand;
+
+use crate::query_representation::intermediary::composite_command::CompositeCommand;
 
 #[derive(PartialEq, Debug)]
 pub enum Command {
@@ -26,57 +27,6 @@ impl Component for Command {
 
         Ok(query)
     }	
-}
-
-#[derive(PartialEq, Debug)]
-pub enum Operator {
-	Equal,
-	GreaterThan,
-}
-
-#[derive(PartialEq, Debug)]
-pub enum Operation {
-	And,
-	Or,
-}
-
-#[derive(PartialEq, Debug)]
-pub struct Value {
-	value:String,
-	data_type:DataType,
-}
-
-#[derive(PartialEq, Debug)]
-pub struct SimpleCommand {
-    attribute: String,
-    operator: Operator,
-    value: Value,
-}
-
-#[derive(PartialEq, Debug)]
-pub struct CompositeCommand {
-	operation: Operation,
-	commands: Vec<Command>,
-}
-
-
-impl Value {
-    pub fn new(value:String,data_type:DataType) -> Self {
-        Self {value,data_type}
-    }
-}
-
-impl SimpleCommand {
-    pub fn new(attribute:String,operator:Operator,value:Value) -> Self {
-        Self {attribute,operator,value}
-    }
-}
-
-
-impl CompositeCommand {
-    pub fn new(operation:Operation,commands:Vec<Command>) -> Self {
-        Self {operation,commands}
-    }
 }
 
 pub fn get_command_attributes(command:&Command) -> Result<Vec<String>,Error> {

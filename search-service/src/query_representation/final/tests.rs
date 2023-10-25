@@ -1,15 +1,21 @@
 #[cfg(test)]
 mod tests {
 
-	use crate::query_representation::intermediary::{
-		Command,
+	use crate::query_representation::intermediary::Command;
+
+	use crate::query_representation::intermediary::simple_command::{
 		SimpleCommand,
-		CompositeCommand,
-		Operator,
-		Operation,
 		Value,
+		Operator,
 		DataType
 	};
+
+	use crate::query_representation::intermediary::composite_command::{
+		CompositeCommand,
+		Operation,
+
+	};
+
 	use crate::query_representation::r#final::command_to_query;
 
     use anyhow::Error;

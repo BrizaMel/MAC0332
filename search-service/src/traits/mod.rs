@@ -1,4 +1,5 @@
 use crate::query_representation::intermediary::Command;
+
 use anyhow::Error;
 
 pub trait Component {

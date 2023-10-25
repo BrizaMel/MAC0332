@@ -2,14 +2,20 @@
 pub mod tests {
 
 	use crate::query_representation::intermediary::{
-		DataType,
 		Command,
-		Operator,
-		Operation,
-		Value,
-		SimpleCommand,
-		CompositeCommand,
 		get_command_attributes
+	};
+
+	use crate::query_representation::intermediary::simple_command::{
+		SimpleCommand,
+		Value,
+		Operator,
+		DataType
+	};
+
+	use crate::query_representation::intermediary::composite_command::{
+		CompositeCommand,
+		Operation,
 	};
 
     use anyhow::Error;

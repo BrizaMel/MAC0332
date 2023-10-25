@@ -2,6 +2,7 @@ use anyhow::{Ok, Result};
 use deadpool_postgres::{Manager, ManagerConfig, Object, Pool, RecyclingMethod};
 use tokio_postgres::NoTls;
 
+pub mod visitor;
 mod queries;
 
 use crate::relational::general::{Attribute, DbSchema, ForeignKey, Table, PrimaryKey};

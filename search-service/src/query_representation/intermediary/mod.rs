@@ -4,8 +4,9 @@
 */
 
 use anyhow::Error;
+use crate::traits::{Component,Visitor};
 
-mod tests;
+pub mod tests;
 
 #[derive(PartialEq, Debug)]
 pub enum DataType {
@@ -17,6 +18,14 @@ pub enum DataType {
 pub enum Command {
 	SimpleCommand(SimpleCommand),
 	CompositeCommand(CompositeCommand),
+}
+
+impl Component for Command {
+    fn accept(&self, projection:Vec<String>, v: &'static dyn Visitor) -> Result<String, Error> {
+        let query = v.visit_command(projection, self)?;
+
+        Ok(query)
+    }	
 }
 
 #[derive(PartialEq, Debug)]
@@ -62,6 +71,7 @@ impl SimpleCommand {
         Self {attribute,operator,value}
     }
 }
+
 
 impl CompositeCommand {
     pub fn new(operation:Operation,commands:Vec<Command>) -> Self {

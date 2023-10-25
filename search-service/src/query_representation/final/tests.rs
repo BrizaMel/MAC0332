@@ -10,12 +10,12 @@ mod tests {
 		Value,
 		DataType
 	};
-	use crate::query_representation::r#final::intermediary_to_final;
+	use crate::query_representation::r#final::command_to_query;
 
     use anyhow::Error;
 
 	#[test]
-	fn test_intermediary_to_final_simple_command() -> Result<(),Error> {
+	fn test_command_to_query_simple_command() -> Result<(),Error> {
 
 		let mut projection : Vec<String> = Vec::new();
 		projection.push("movies.movie.title".to_string());
@@ -31,7 +31,7 @@ mod tests {
 		);
 		
 		let command = Command::SimpleCommand(simple_command);
-		let _query = intermediary_to_final(projection,command)?;
+		let _query = command_to_query(&projection,&command)?;
 
 		/* TODO: Uncomment the test after full implementation */
 
@@ -100,7 +100,7 @@ mod tests {
 		);
 		
 		let command = Command::CompositeCommand(composite_command);
-		let _query = intermediary_to_final(projection,command)?;
+		let _query = command_to_query(&projection,&command)?;
 
 		/* TODO: Uncomment the test after full implementation */
 

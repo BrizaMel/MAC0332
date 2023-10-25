@@ -13,10 +13,10 @@ use crate::query_representation::intermediary::{
 
 mod tests;
 
-pub fn intermediary_to_final(projection:Vec<String>,command:Command) -> Result<String,Error>{
+pub fn command_to_query(projection:&Vec<String>,command:&Command) -> Result<String,Error>{
 
 
-	let attributes_needed = get_attributes_needed(&projection,&command)?;
+	let attributes_needed = get_attributes_needed(projection,command)?;
 
 	let tables_needed = get_tables_needed(&attributes_needed)?;
 
@@ -28,7 +28,7 @@ pub fn intermediary_to_final(projection:Vec<String>,command:Command) -> Result<S
 	/* TODO: Concatenate the select,from and where strings */
 
 	let _select_query = create_select_query(&projection)?;
- 	let final_query = "".to_string();
+ 	let final_query = "Command to query not implemented yet".to_string();
 
 
 	Ok(final_query)

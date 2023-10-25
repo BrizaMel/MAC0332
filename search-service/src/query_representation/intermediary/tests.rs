@@ -1,5 +1,5 @@
 #[cfg(test)]
-mod tests {
+pub mod tests {
 
 	use crate::query_representation::intermediary::{
 		DataType,
@@ -14,7 +14,7 @@ mod tests {
 
     use anyhow::Error;
 
-    fn create_simple_command() -> Result<SimpleCommand,Error> {
+    pub fn create_simple_command() -> Result<SimpleCommand,Error> {
 
 		let value = Value::new(200.to_string(),DataType::Integer);
 		let operator = Operator::GreaterThan;
@@ -23,7 +23,7 @@ mod tests {
     	Ok(simple_command)
     }
 
-    fn create_composite_command() -> Result<CompositeCommand,Error> {
+    pub fn create_composite_command() -> Result<CompositeCommand,Error> {
 		let operation = Operation::And;
 		let mut commands : Vec<Command> = Vec::new();
 
@@ -175,6 +175,7 @@ mod tests {
 
 		Ok(())
 	}
+
 
 	#[test]
 	fn test_get_command_attributes() -> Result<(),Error> {

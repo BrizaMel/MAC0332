@@ -4,16 +4,16 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Clone)]
 pub struct Attribute {
-    name: String,
-    data_type: String,
+    pub name: String,
+    pub data_type: String,
 }
 
 #[derive(Serialize, Deserialize, Clone)]
 pub struct Table {
     pub schema: String,
     pub name: String,
-    attributes: Vec<Attribute>,
-    primary_keys: Vec<PrimaryKey>,
+    pub attributes: Vec<Attribute>,
+    pub primary_keys: Vec<PrimaryKey>,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -28,15 +28,15 @@ pub struct ForeignKey {
 
 #[derive(Serialize, Deserialize, Clone)]
 pub struct PrimaryKey {
-    schema_name: String,
-    table_name: String,
-    attribute_name: String,
+    pub schema_name: String,
+    pub table_name: String,
+    pub attribute_name: String,
 }
 
 #[derive(Serialize, Deserialize)]
 pub struct DbSchema {
-    tables: Vec<Table>,
-    foreing_keys: Vec<ForeignKey>,
+    pub tables: Vec<Table>,
+    pub foreing_keys: Vec<ForeignKey>,
 }
 
 impl Attribute {

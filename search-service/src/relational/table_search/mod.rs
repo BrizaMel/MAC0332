@@ -18,9 +18,6 @@ use crate::relational::entities::ForeignKey;
 
 use self::{entities::TableSearchInfo, errors::TableSearchError};
 
-use petgraph::algo::dijkstra;
-use petgraph::dot::{Config, Dot}; //Used for debugging graphs
-
 pub struct TableSearch {
     // maps table identifiers (in the format schema_name.table_name) to their corresponding node indices in the graph
     table_identifier_to_node_index: HashMap<String, NodeIndex>,

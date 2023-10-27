@@ -1,5 +1,5 @@
 #[cfg(test)]
-mod tests {
+pub mod tests {
 
 	use crate::query_representation::intermediary::Command;
 
@@ -20,12 +20,14 @@ mod tests {
 
     use anyhow::Error;
 
-	#[test]
-	fn test_command_to_query_simple_command() -> Result<(),Error> {
+    pub fn clean_query(query: &String) -> Result<String,Error> {
+	
+		let cleaned_query = query.replace(&['\n','\t',' '],"");    	
 
-		let mut projection : Vec<String> = Vec::new();
-		projection.push("movies.movie.title".to_string());
-		projection.push("movies.movie.runtime".to_string());
+    	Ok(cleaned_query)
+    }
+
+    pub fn simple_command_creation() -> Result<SimpleCommand,Error> {
 
 		let simple_command = SimpleCommand::new(
 			"movies.movie.runtime".to_string(),
@@ -35,29 +37,11 @@ mod tests {
 				DataType::Integer
 			)
 		);
-		
-		let command = Command::SimpleCommand(simple_command);
-		let _query = command_to_query(&projection,&command)?;
 
-		/* TODO: Uncomment the test after full implementation */
+		Ok(simple_command)    	
+    }
 
-		// assert_eq!(query,"
-		// 	SELECT movies.movie.title,movies.movie.runtime
-		// 	FROM movies.movie
-		// 	WHERE movis.movie.runtime > 200;
-		// 	".to_string());
-
-		Ok(())
-	}
-
-	#[test]
-	fn test_intermediary_to_final_composite_command() -> Result<(),Error> {
-
-		let mut projection : Vec<String> = Vec::new();
-		projection.push("movies.movie.title".to_string());
-		projection.push("movies.movie.revenue".to_string());
-		projection.push("movies.movie.runtime".to_string());
-		projection.push("movies.movie.budget".to_string());
+    pub fn composite_command_creation() -> Result<CompositeCommand,Error> {
 
 		let mut nested_commands : Vec<Command> = Vec::new();
 		let mut nested_2_commands : Vec<Command> = Vec::new();
@@ -104,22 +88,60 @@ mod tests {
 			Operation::And,
 			nested_commands
 		);
+
+		Ok(composite_command)
+
+    }
+
+	#[test]
+	fn test_simple_command_to_query() -> Result<(),Error> {
+
+		let mut projection : Vec<String> = Vec::new();
+		projection.push("movies.movie.title".to_string());
+		projection.push("movies.movie.runtime".to_string());
+
+		let simple_command = simple_command_creation()?;
+		
+		let command = Command::SimpleCommand(simple_command);
+		let _query = command_to_query(&projection,&command)?;
+
+		/* TODO: Uncomment the test after full implementation */
+		
+		// let ideal_query = "
+		// 	SELECT movies.movie.title,movies.movie.runtime
+		// 	FROM movies.movie
+		// 	WHERE movis.movie.runtime > 200;
+		// ".to_string();
+
+		// assert_eq!(clean_query(&query)?,clean_query(&ideal_query)?);
+
+		Ok(())
+	}
+
+	#[test]
+	fn test_composite_command_to_query() -> Result<(),Error> {
+
+		let mut projection : Vec<String> = Vec::new();
+		projection.push("movies.movie.title".to_string());
+		projection.push("movies.movie.revenue".to_string());
+		projection.push("movies.movie.runtime".to_string());
+		projection.push("movies.movie.budget".to_string());
+
+		let composite_command = composite_command_creation()?;
 		
 		let command = Command::CompositeCommand(composite_command);
 		let _query = command_to_query(&projection,&command)?;
 
 		/* TODO: Uncomment the test after full implementation */
-
-		// assert_eq!(query,"
+		// let ideal_query = "
 		// 	SELECT movies.movie.title, movies.movie.revenue, movies.movie.runtime, movies.movie.release_date
 		// 	FROM movies.movie
-		// 	WHERE (movies.movie.revenue>1000000 OR movies.movie.runtime>200) AND movies.movie.budget > 1000000
-		// ".to_string());
+		// 	WHERE (movies.movie.revenue>1000000 OR movies.movie.runtime>200) AND movies.movie.budget > 1000000;
+		// ".to_string();
+
+		// assert_eq!(clean_query(&query)?,clean_query(&ideal_query)?);
 
 		Ok(())
 	}
 
 }
-
-
-

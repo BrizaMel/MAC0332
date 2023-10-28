@@ -14,8 +14,12 @@ pub struct Value {
 
 #[derive(PartialEq, Debug)]
 pub enum Operator {
-    Equal,
+    EqualTo,
     GreaterThan,
+    LessThan,
+    GreaterThanOrEqualTo,
+    LessThanOrEqualTo,
+    NotEqualTo,
 }
 
 #[derive(PartialEq, Debug)]

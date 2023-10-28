@@ -148,12 +148,28 @@ fn translate_operator(operator: &Operator) -> Result<String,Error> {
 
 	match operator {
 		
-		Operator::Equal => {
+		Operator::EqualTo => {
 			operator_translated = " = ".to_owned();
 		}
 
 		Operator::GreaterThan => {
 			operator_translated = " > ".to_owned();
+		}
+    	
+		Operator::LessThan => {
+			operator_translated = " < ".to_owned();
+		}
+    	
+		Operator::GreaterThanOrEqualTo => {
+			operator_translated = " >= ".to_owned();
+		}
+    	
+		Operator::LessThanOrEqualTo => {
+			operator_translated = " <= ".to_owned();
+		}
+    	
+		Operator::NotEqualTo => {
+			operator_translated = " <> ".to_owned();
 		}
 	}
 	Ok(operator_translated)

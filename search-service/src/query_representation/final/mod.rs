@@ -22,15 +22,14 @@ pub fn command_to_query(projection:&Vec<String>,command:&Command) -> Result<Stri
 
 	let tables_needed = get_tables_needed(&attributes_needed)?;
 
-	let select_query = create_select_query(&projection)?;
+	let _select_query = create_select_query(&projection)?;
 
-	let from_query = create_from_query(&tables_needed)?;
+	let _from_query = create_from_query(&tables_needed)?;
 
-	let where_query = create_where_query(&command, true)?;
+	let _where_query = create_where_query(&command, true)?;
 	
-	println!("{:?}",from_query);
-
- 	let final_query = [select_query, from_query, where_query].join("\n");
+ 	// let final_query = [select_query, from_query, where_query].join("\n");
+	let final_query = "Command to query not implemented yet".to_string();
 
 
 	Ok(final_query)

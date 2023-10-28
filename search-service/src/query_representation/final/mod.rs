@@ -8,7 +8,9 @@ use anyhow::Error;
 
 use crate::query_representation::intermediary::{
 	Command,
-	get_command_attributes
+	get_command_attributes,
+	composite_command::Operation, 
+	simple_command::Operator
 };
 
 mod tests;
@@ -20,15 +22,15 @@ pub fn command_to_query(projection:&Vec<String>,command:&Command) -> Result<Stri
 
 	let tables_needed = get_tables_needed(&attributes_needed)?;
 
-	let _from_query = create_from_query(&tables_needed)?;
+	let select_query = create_select_query(&projection)?;
+
+	let from_query = create_from_query(&tables_needed)?;
+
+	let where_query = create_where_query(&command, true)?;
 	
-	// println!("{:?}",from_query);
+	println!("{:?}",from_query);
 
-	/* TODO: function that creates the where clause*/
-	/* TODO: Concatenate the select,from and where strings */
-
-	let _select_query = create_select_query(&projection)?;
- 	let final_query = "Command to query not implemented yet".to_string();
+ 	let final_query = [select_query, from_query, where_query].join("\n");
 
 
 	Ok(final_query)
@@ -86,4 +88,73 @@ fn create_from_query(tables:&Vec<String>) -> Result<String,Error> {
 
 	Ok(from_query)
 
+}
+
+fn create_where_query(command: &Command, initial_call: bool) -> Result<String,Error> {
+
+	let mut where_query = "".to_owned();
+	
+	if initial_call {
+		where_query.push_str("WHERE ")
+		// TODO: Add JOIN filters here
+	};
+
+	match command {
+
+		Command::CompositeCommand(_) => {
+			let Command::CompositeCommand(ref composite_command) = command else {  panic!("Wrong Command type");};
+			let nested_commands = &composite_command.commands;
+			
+			if !initial_call {where_query.push_str(&"(".to_string())}
+			where_query.push_str(&create_where_query(&nested_commands[0], false)?);
+			where_query.push_str(&translate_operation(&composite_command.operation)?);
+			where_query.push_str(&create_where_query(&nested_commands[1], false)?);
+			if !initial_call {where_query.push_str(&")".to_string())}
+		}
+	
+		Command::SimpleCommand(_) => {
+			let Command::SimpleCommand(ref simple_command) = command else {  panic!("Wrong Command type");};
+			where_query.push_str(&simple_command.attribute);
+			where_query.push_str(&translate_operator(&simple_command.operator)?);
+			where_query.push_str(&simple_command.value.value);
+		}
+		
+	}
+
+	Ok(where_query)
+
+}
+
+fn translate_operation(operation: &Operation) -> Result<String,Error> {
+
+	let operation_translated;
+
+	match operation {
+		
+		Operation::And => {
+			operation_translated = "AND".to_owned();
+		}
+
+		Operation::Or => {
+			operation_translated = "OR".to_owned();
+		}
+	}
+	Ok(operation_translated)
+}
+
+fn translate_operator(operator: &Operator) -> Result<String,Error> {
+
+	let operator_translated;
+
+	match operator {
+		
+		Operator::Equal => {
+			operator_translated = " = ".to_owned();
+		}
+
+		Operator::GreaterThan => {
+			operator_translated = " > ".to_owned();
+		}
+	}
+	Ok(operator_translated)
 }

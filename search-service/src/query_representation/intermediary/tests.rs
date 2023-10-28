@@ -169,7 +169,10 @@ pub mod tests {
 
         let final_composite_command = create_nested_composite_command()?;
 
-        assert_eq!(final_composite_command.logical_operator, LogicalOperator::And);
+        assert_eq!(
+            final_composite_command.logical_operator,
+            LogicalOperator::And
+        );
 
         let Command::SingleCommand(ref checking_simple_command) = final_composite_command.commands[1] else {  panic!("Wrong Command type in index 1");};
 
@@ -181,7 +184,10 @@ pub mod tests {
 
         let Command::CompositeCommand(ref checking_composite_command) = final_composite_command.commands[0] else {  panic!("Wrong Command type in index 0");};
 
-        assert_eq!(checking_composite_command.logical_operator, LogicalOperator::Or);
+        assert_eq!(
+            checking_composite_command.logical_operator,
+            LogicalOperator::Or
+        );
 
         let Command::SingleCommand(ref checking_nested_simple_command_1) = checking_composite_command.commands[0] else {  panic!("Wrong Command type in nested index 0");};
         assert_eq!(

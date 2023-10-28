@@ -56,7 +56,7 @@ pub mod tests {
 
 		let nested_composite_command = CompositeCommand::new(nested_operation,nested_commands);
 
-		let simple_command = SimpleCommand::new("movies.movie.runtime".to_string(),Operator::Equal,Value::new(50.to_string(),DataType::Integer));
+		let simple_command = SimpleCommand::new("movies.movie.runtime".to_string(),Operator::EqualTo,Value::new(50.to_string(),DataType::Integer));
 		let final_operation = Operation::And;
 		let mut final_commands : Vec<Command> = Vec::new();
 

@@ -1,5 +1,8 @@
+
 #[cfg(test)]
 pub mod tests {
+
+	use crate::relational::general::{Table,ForeignKey};
 
 	use crate::query_representation::intermediary::Command;
 
@@ -17,6 +20,7 @@ pub mod tests {
 	};
 
 	use crate::query_representation::r#final::command_to_query;
+use crate::relational::tableSearch::TableSearch;
 
     use anyhow::Error;
 
@@ -102,8 +106,13 @@ pub mod tests {
 
 		let simple_command = simple_command_creation()?;
 		
+		// TODO: Pass correct lists of Tables and ForeignKeys to table_search
+		let tables: Vec<Table> = Vec::from([]);
+		let fks: Vec<ForeignKey> = Vec::from([]);
+		let ts = TableSearch::new(&tables, &fks);
+
 		let command = Command::SimpleCommand(simple_command);
-		let _query = command_to_query(&projection,&command)?;
+		let _query = command_to_query(&projection,&command,&ts)?;
 
 		/* TODO: Uncomment the test after full implementation */
 		
@@ -129,8 +138,13 @@ pub mod tests {
 
 		let composite_command = composite_command_creation()?;
 		
+		// TODO: Pass correct lists of Tables and ForeignKeys to table_search
+		let tables: Vec<Table> = Vec::from([]);
+		let fks: Vec<ForeignKey> = Vec::from([]);
+		let ts = TableSearch::new(&tables, &fks);
+
 		let command = Command::CompositeCommand(composite_command);
-		let _query = command_to_query(&projection,&command)?;
+		let _query = command_to_query(&projection,&command,&ts)?;
 
 		/* TODO: Uncomment the test after full implementation */
 		// let ideal_query = "

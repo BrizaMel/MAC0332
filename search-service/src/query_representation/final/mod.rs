@@ -6,6 +6,8 @@
 
 use anyhow::Error;
 
+use crate::relational::tableSearch::TableSearch;
+
 use crate::query_representation::intermediary::{
 	Command,
 	get_command_attributes,
@@ -14,8 +16,8 @@ use crate::query_representation::intermediary::{
 };
 
 mod tests;
-
-pub fn command_to_query(projection:&Vec<String>,command:&Command) -> Result<String,Error>{
+// ,&tableSearch:TableSearch
+pub fn command_to_query(projection:&Vec<String>,command:&Command,table_search: &TableSearch) -> Result<String,Error>{
 
 	let attributes_needed = get_attributes_needed(projection,command)?;
 

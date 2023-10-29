@@ -22,7 +22,7 @@ pub enum Command {
 }
 
 impl Component for Command {
-    fn accept(&self, projection:Vec<String>, v: &'static dyn Visitor) -> Result<String, Error> {
+    fn accept(&self, projection:Vec<String>, v: &dyn Visitor) -> Result<String, Error> {
         let query = v.visit_command(projection, self)?;
 
         Ok(query)

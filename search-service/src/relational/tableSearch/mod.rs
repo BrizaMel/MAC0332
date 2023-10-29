@@ -13,6 +13,7 @@ use petgraph::{
 
 use crate::relational::general::{ForeignKey, Table};
 
+#[derive(Default)]
 pub struct TableSearch {
     // maps table identifiers (in the format schema_name.table_name) to their corresponding node indices in the graph
     indexes_dict: Dict<NodeIndex>,
@@ -63,6 +64,14 @@ impl TableSearch {
             indexes_dict: this_dict,
             table_graph: this_graph,
         }
+    }
+
+    pub fn get_join_requirements() {
+
+    }
+
+    fn get_attibute_pair_requirements(&self){
+
     }
 
     pub fn path_to(&self, origin: String, destiny: String) -> (Vec<&String>,Vec<&String>) {

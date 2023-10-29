@@ -2,7 +2,7 @@
 #[cfg(test)]
 pub mod tests {
 
-	use crate::relational::general::{Table,ForeignKey};
+	use crate::relational::entities::{Table,ForeignKey};
 
 	use crate::query_representation::intermediary::Command;
 
@@ -20,7 +20,8 @@ pub mod tests {
 	};
 
 	use crate::query_representation::r#final::command_to_query;
-use crate::relational::tableSearch::TableSearch;
+	use crate::relational::table_search::TableSearch;
+	use crate::relational::table_search::entities::TableSearchInfo;
 
     use anyhow::Error;
 
@@ -109,7 +110,13 @@ use crate::relational::tableSearch::TableSearch;
 		// TODO: Pass correct lists of Tables and ForeignKeys to table_search
 		let tables: Vec<Table> = Vec::from([]);
 		let fks: Vec<ForeignKey> = Vec::from([]);
-		let ts = TableSearch::new(&tables, &fks);
+
+		let tables_search_info: Vec<TableSearchInfo> = tables
+        .clone()
+        .into_iter()
+        .map(TableSearchInfo::from)
+        .collect();
+		let ts = TableSearch::new(&tables_search_info, &fks);
 
 		let command = Command::SimpleCommand(simple_command);
 		let _query = command_to_query(&projection,&command,&ts)?;
@@ -141,7 +148,12 @@ use crate::relational::tableSearch::TableSearch;
 		// TODO: Pass correct lists of Tables and ForeignKeys to table_search
 		let tables: Vec<Table> = Vec::from([]);
 		let fks: Vec<ForeignKey> = Vec::from([]);
-		let ts = TableSearch::new(&tables, &fks);
+		let tables_search_info: Vec<TableSearchInfo> = tables
+        .clone()
+        .into_iter()
+        .map(TableSearchInfo::from)
+        .collect();
+		let ts = TableSearch::new(&tables_search_info, &fks);
 
 		let command = Command::CompositeCommand(composite_command);
 		let _query = command_to_query(&projection,&command,&ts)?;

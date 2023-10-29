@@ -6,7 +6,7 @@
 
 use anyhow::Error;
 
-use crate::relational::tableSearch::TableSearch;
+use crate::relational::table_search::TableSearch;
 
 use crate::query_representation::intermediary::{
 	Command,

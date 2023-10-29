@@ -1,5 +1,6 @@
-use crate::relational::tableSearch::TableSearch;
-use crate::relational::general::{Table,ForeignKey};
+use crate::relational::table_search::TableSearch;
+use crate::relational::table_search::entities::TableSearchInfo;
+use crate::relational::entities::{Table,ForeignKey};
 use crate::traits::Visitor;
 
 use crate::query_representation::intermediary::Command;
@@ -10,7 +11,6 @@ use anyhow::Error;
 
 mod tests;
 
-#[derive(Default)]
 pub struct PostgresVisitor {
     //TableSearch struct with information on the db's tables
     table_search: TableSearch,
@@ -18,8 +18,14 @@ pub struct PostgresVisitor {
 
 impl PostgresVisitor {
     pub fn new(tables: &Vec<Table>, foreign_keys: &Vec<ForeignKey>) -> Self {
+        let tables_search_info: Vec<TableSearchInfo> = tables
+        .clone()
+        .into_iter()
+        .map(TableSearchInfo::from)
+        .collect();
+
         Self {
-            table_search: TableSearch::new(tables, foreign_keys)
+            table_search: TableSearch::new(&tables_search_info, foreign_keys)
         }
     }
 }

@@ -1,7 +1,7 @@
 #[cfg(test)]
 mod tests {
 
-	use crate::relational::general::{Table,ForeignKey};
+	use crate::relational::entities::{Table,ForeignKey};
 
 	use crate::query_representation::intermediary::Command;
 

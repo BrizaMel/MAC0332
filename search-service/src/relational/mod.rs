@@ -1,2 +1,2 @@
-pub mod general;
-pub mod tableSearch;
+pub mod entities;
+pub mod table_search;

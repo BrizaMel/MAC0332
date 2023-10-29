@@ -2,9 +2,7 @@
 pub mod tests {
 
 
-	use crate::query_representation::intermediary::{
-		Command,
-	};
+	use crate::query_representation::intermediary::Command;
 
 	use crate::query_representation::intermediary::simple_command::{
 		SimpleCommand,
@@ -17,6 +15,8 @@ pub mod tests {
 		CompositeCommand,
 		Operation,
 	};
+
+	use crate::query_representation::initial::initial_to_command;
 
 	use anyhow::Error;
 
@@ -40,7 +40,7 @@ pub mod tests {
 		let _command = Command::SimpleCommand(simple_command);
 
 		/* TODO: Uncomment the test after full implementation */
-		// assert_eq!(initial_to_command(&initial)?,command);
+		assert_eq!(initial_to_command(_initial)?,_command);
 
 		Ok(())
 	}
@@ -96,7 +96,7 @@ pub mod tests {
 
 		let nested_composite_command = CompositeCommand::new(nested_operation,nested_commands);
 
-		let simple_command = SimpleCommand::new("movies.movie.runtime".to_string(),Operator::Equal,Value::new(50.to_string(),DataType::Integer));
+		let simple_command = SimpleCommand::new("movies.movie.runtime".to_string(),Operator::EqualTo,Value::new(50.to_string(),DataType::Integer));
 		let final_operation = Operation::And;
 		let mut final_commands : Vec<Command> = Vec::new();
 

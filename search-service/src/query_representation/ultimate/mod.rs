@@ -82,7 +82,7 @@ fn create_where_query(command: &Command, initial_call: bool) -> Result<String, E
             }
 
             where_query.push_str(&create_where_query(&nested_commands[0], false)?);
-            where_query.push_str(&composite_command.operation.to_string());
+            where_query.push_str(&composite_command.logical_operator.to_string());
             where_query.push_str(&create_where_query(&nested_commands[1], false)?);
 
             if !initial_call {
@@ -142,7 +142,7 @@ mod tests {
     };
 
     use crate::query_representation::intermediary::composite_command::{
-        CompositeCommand, Operation,
+        CompositeCommand, LogicalOperator,
     };
 
     use crate::query_representation::ultimate::command_to_query;
@@ -225,12 +225,12 @@ mod tests {
         nested_2_commands.push(Command::SingleCommand(nested_simple_command_1));
         nested_2_commands.push(Command::SingleCommand(nested_simple_command_2));
 
-        let nested_composite = CompositeCommand::new(Operation::Or, nested_2_commands);
+        let nested_composite = CompositeCommand::new(LogicalOperator::Or, nested_2_commands);
 
         nested_commands.push(Command::CompositeCommand(nested_composite));
         nested_commands.push(Command::SingleCommand(simple_command));
 
-        let composite_command = CompositeCommand::new(Operation::And, nested_commands);
+        let composite_command = CompositeCommand::new(LogicalOperator::And, nested_commands);
 
         let command = Command::CompositeCommand(composite_command);
         let _query = command_to_query(projection, &command)?;

@@ -8,7 +8,7 @@ pub mod tests {
     };
 
     use crate::query_representation::intermediary::composite_command::{
-        CompositeCommand, Operation,
+        CompositeCommand, LogicalOperator,
     };
 
     use anyhow::Error;
@@ -23,7 +23,7 @@ pub mod tests {
     }
 
     pub fn create_composite_command() -> Result<CompositeCommand, Error> {
-        let operation = Operation::And;
+        let logical_operator = LogicalOperator::And;
         let mut commands: Vec<Command> = Vec::new();
 
         let simple_command_1 = SingleCommand::new(
@@ -40,13 +40,13 @@ pub mod tests {
         commands.push(Command::SingleCommand(simple_command_1));
         commands.push(Command::SingleCommand(simple_command_2));
 
-        let composite_command = CompositeCommand::new(operation, commands);
+        let composite_command = CompositeCommand::new(logical_operator, commands);
 
         Ok(composite_command)
     }
 
     fn create_nested_composite_command() -> Result<CompositeCommand, Error> {
-        let nested_operation = Operation::Or;
+        let nested_operator = LogicalOperator::Or;
         let mut nested_commands: Vec<Command> = Vec::new();
 
         let nested_simple_command_1 = SingleCommand::new(
@@ -63,20 +63,20 @@ pub mod tests {
         nested_commands.push(Command::SingleCommand(nested_simple_command_1));
         nested_commands.push(Command::SingleCommand(nested_simple_command_2));
 
-        let nested_composite_command = CompositeCommand::new(nested_operation, nested_commands);
+        let nested_composite_command = CompositeCommand::new(nested_operator, nested_commands);
 
         let simple_command = SingleCommand::new(
             "movies.movie.runtime".to_string(),
             Operator::EqualTo,
             Value::new(50.to_string(), DataType::Integer),
         );
-        let final_operation = Operation::And;
+        let final_operator = LogicalOperator::And;
         let mut final_commands: Vec<Command> = Vec::new();
 
         final_commands.push(Command::CompositeCommand(nested_composite_command));
         final_commands.push(Command::SingleCommand(simple_command));
 
-        let final_composite_command = CompositeCommand::new(final_operation, final_commands);
+        let final_composite_command = CompositeCommand::new(final_operator, final_commands);
 
         Ok(final_composite_command)
     }
@@ -104,7 +104,7 @@ pub mod tests {
     fn test_composite_command_creation() -> Result<(), Error> {
         /*
             {
-                operation: "AND",
+                LogicalOperator: "AND",
                 command: [
                     {
                         attribute: "movies.movie.runtime",
@@ -122,7 +122,7 @@ pub mod tests {
 
         let composite_command = create_composite_command()?;
 
-        assert_eq!(composite_command.operation, Operation::And);
+        assert_eq!(composite_command.logical_operator, LogicalOperator::And);
 
         let Command::SingleCommand(ref first_command) = composite_command.commands[0] else {  panic!("Wrong Command type in index 0");};
 
@@ -141,10 +141,10 @@ pub mod tests {
     fn test_composite_command_recursive() -> Result<(), Error> {
         /*
             {
-                operation: "AND",
+                LogicalOperator: "AND",
                 command: [
                     {
-                        operation: "OR",
+                        LogicalOperator: "OR",
                         command: [
                             {
                                 attribute: "movies.movie.runtime",
@@ -169,7 +169,7 @@ pub mod tests {
 
         let final_composite_command = create_nested_composite_command()?;
 
-        assert_eq!(final_composite_command.operation, Operation::And);
+        assert_eq!(final_composite_command.logical_operator, LogicalOperator::And);
 
         let Command::SingleCommand(ref checking_simple_command) = final_composite_command.commands[1] else {  panic!("Wrong Command type in index 1");};
 
@@ -181,7 +181,7 @@ pub mod tests {
 
         let Command::CompositeCommand(ref checking_composite_command) = final_composite_command.commands[0] else {  panic!("Wrong Command type in index 0");};
 
-        assert_eq!(checking_composite_command.operation, Operation::Or);
+        assert_eq!(checking_composite_command.logical_operator, LogicalOperator::Or);
 
         let Command::SingleCommand(ref checking_nested_simple_command_1) = checking_composite_command.commands[0] else {  panic!("Wrong Command type in nested index 0");};
         assert_eq!(

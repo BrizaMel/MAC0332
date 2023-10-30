@@ -2,7 +2,6 @@ use anyhow::{Ok, Result};
 use deadpool_postgres::{Manager, ManagerConfig, Object, Pool, RecyclingMethod};
 use tokio_postgres::NoTls;
 
-pub mod visitor;
 mod queries;
 mod tests;
 

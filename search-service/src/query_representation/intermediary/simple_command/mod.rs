@@ -1,5 +1,5 @@
 #[derive(PartialEq, Debug)]
-pub struct SimpleCommand {
+pub struct SingleCommand {
     pub attribute: String,
     pub operator: Operator,
     pub value: Value,
@@ -7,10 +7,9 @@ pub struct SimpleCommand {
 
 #[derive(PartialEq, Debug)]
 pub struct Value {
-    pub value:String,
-    pub data_type:DataType,
+    pub value: String,
+    pub data_type: DataType,
 }
-
 
 #[derive(PartialEq, Debug)]
 pub enum Operator {
@@ -28,14 +27,18 @@ pub enum DataType {
     String,
 }
 
-impl SimpleCommand {
-    pub fn new(attribute:String,operator:Operator,value:Value) -> Self {
-        Self {attribute,operator,value}
-    }
-}
-impl Value {
-    pub fn new(value:String,data_type:DataType) -> Self {
-        Self {value,data_type}
+impl SingleCommand {
+    pub fn new(attribute: String, operator: Operator, value: Value) -> Self {
+        Self {
+            attribute,
+            operator,
+            value,
+        }
     }
 }
 
+impl Value {
+    pub fn new(value: String, data_type: DataType) -> Self {
+        Self { value, data_type }
+    }
+}

@@ -10,9 +10,10 @@ use petgraph::{
     algo::dijkstra,
     dot::Dot,
     graph::{Graph, NodeIndex},
+    unionfind::UnionFind,
     Undirected,
 };
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 use crate::relational::entities::ForeignKey;
 
@@ -26,7 +27,7 @@ pub struct TableSearch {
 }
 
 impl TableSearch {
-    pub fn new(tables: &[TableSearchInfo], foreign_keys: &[ForeignKey]) -> Self {
+    pub fn new(tables: Vec<TableSearchInfo>, foreign_keys: Vec<ForeignKey>) -> Self {
         let mut table_search_graph = Graph::<String, String, Undirected>::new_undirected();
         let table_identifier_to_node_index = tables
             .iter()
@@ -67,6 +68,86 @@ impl TableSearch {
             table_identifier_to_node_index,
             table_search_graph,
         }
+    }
+
+    pub fn get_join_requirements(&self, atrs: &Vec<String>) -> (Vec<String>, Vec<String>) {
+        let mut tables_needed: HashSet<String> = HashSet::from([]);
+        let mut attributes_needed: HashSet<String> = HashSet::from([]);
+
+        let mut tables_uf: UnionFind<usize> = UnionFind::new(atrs.len());
+
+        if atrs.len() > 1 {
+            for i in 0..atrs.len() {
+                for j in i + 1..atrs.len() {
+                    let (new_tables, new_attrs) =
+                        &self.get_attibute_pair_requirements(&atrs[i], &atrs[j]);
+
+                    if new_tables.len() > 0 {
+                        tables_uf.union(i, j);
+                    }
+
+                    tables_needed.extend(new_tables.to_owned());
+                    attributes_needed.extend(new_attrs.to_owned());
+                }
+            }
+        } else if atrs.len() == 1 {
+            let (table_str, atr_str) = &self.get_atr_info(&atrs[0]);
+            tables_needed.insert(table_str.to_owned());
+            attributes_needed.insert(atr_str.to_owned());
+        }
+
+        let table_sets = tables_uf.into_labeling();
+        for i in 0..atrs.len() - 1 {
+            if table_sets[i] != table_sets[i + 1] {
+                panic!("Atributes can't be joined")
+                // TODO: actually throw the error here. I couldn't manage to do it myself :(
+                // TableSearchError::AtributesCantBeJoined()?
+            }
+        }
+
+        (
+            tables_needed.into_iter().collect(),
+            attributes_needed.into_iter().collect(),
+        )
+    }
+
+    fn get_attibute_pair_requirements(
+        &self,
+        atr1: &String,
+        atr2: &String,
+    ) -> (HashSet<String>, HashSet<String>) {
+        let (table_str1, _atr_str1) = &self.get_atr_info(&atr1);
+        let (table_str2, _atr_str2) = &self.get_atr_info(&atr2);
+
+        let mut attributes_needed: HashSet<String> = HashSet::from([]);
+
+        // I chose to use unwrap here as this should be receiving a list of proper attributes (from tables
+        // which exist in the given DB). If that is  not the case, this part of the system should be
+        // refactored.
+        let (tables_needed, fks) = self
+            .path_to(table_str1.to_string(), table_str2.to_string())
+            .unwrap();
+
+        for i in 0..fks.len() {
+            let atributes: Vec<&str> = fks[i].split(":").collect();
+
+            let atribute1 = format!("{}.{}", tables_needed[i], atributes[0]).to_string();
+            let atribute2 = format!("{}.{}", tables_needed[i + 1], atributes[1]).to_string();
+            attributes_needed.insert(format!("{}.{}", atribute1, atribute2));
+        }
+
+        let tables_needed_set: HashSet<String> = HashSet::from_iter(tables_needed.into_iter());
+
+        (tables_needed_set, attributes_needed)
+    }
+
+    fn get_atr_info(&self, atr: &String) -> (String, String) {
+        let words_vec: Vec<&str> = atr.split(".").collect();
+
+        (
+            format!("{}.{}", words_vec[0], words_vec[1]).to_string(),
+            words_vec[2].to_string(),
+        )
     }
 
     pub fn path_to(
@@ -156,11 +237,11 @@ mod tests {
     #[test]
     fn should_create_tables_and_foreign_keys() {
         TableSearch::new(
-            &[
+            vec![
                 TableSearchInfo::new("A".to_string(), "B".to_string()),
                 TableSearchInfo::new("C".to_string(), "D".to_string()),
             ],
-            &[ForeignKey::new(
+            vec![ForeignKey::new(
                 "A".to_string(),
                 "B".to_string(),
                 "e".to_string(),
@@ -174,12 +255,12 @@ mod tests {
     #[test]
     fn should_find_no_path() -> Result<()> {
         let ts = TableSearch::new(
-            &[
+            vec![
                 TableSearchInfo::new("A".to_string(), "B".to_string()),
                 TableSearchInfo::new("C".to_string(), "D".to_string()),
                 TableSearchInfo::new("AA".to_string(), "BB".to_string()),
             ],
-            &[ForeignKey::new(
+            vec![ForeignKey::new(
                 "A".to_string(),
                 "B".to_string(),
                 "e".to_string(),
@@ -200,12 +281,12 @@ mod tests {
     #[test]
     fn should_find_path() -> Result<()> {
         let ts = TableSearch::new(
-            &[
+            vec![
                 TableSearchInfo::new("A".to_string(), "B".to_string()),
                 TableSearchInfo::new("C".to_string(), "D".to_string()),
                 TableSearchInfo::new("AA".to_string(), "BB".to_string()),
             ],
-            &[ForeignKey::new(
+            vec![ForeignKey::new(
                 "A".to_string(),
                 "B".to_string(),
                 "e".to_string(),
@@ -226,12 +307,12 @@ mod tests {
     #[test]
     fn should_find_path_2() -> Result<()> {
         let ts = TableSearch::new(
-            &[
+            vec![
                 TableSearchInfo::new("A".to_string(), "B".to_string()),
                 TableSearchInfo::new("C".to_string(), "D".to_string()),
                 TableSearchInfo::new("AA".to_string(), "BB".to_string()),
             ],
-            &[
+            vec![
                 ForeignKey::new(
                     "A".to_string(),
                     "B".to_string(),
@@ -263,12 +344,12 @@ mod tests {
     #[test]
     fn should_find_path_when_edges_are_inverted() -> Result<()> {
         let ts = TableSearch::new(
-            &[
+            vec![
                 TableSearchInfo::new("A".to_string(), "B".to_string()),
                 TableSearchInfo::new("C".to_string(), "D".to_string()),
                 TableSearchInfo::new("AA".to_string(), "BB".to_string()),
             ],
-            &[
+            vec![
                 ForeignKey::new(
                     "AA".to_string(),
                     "BB".to_string(),
@@ -299,13 +380,13 @@ mod tests {
     #[test]
     fn should_find_all_joinable_tables() -> Result<()> {
         let ts = TableSearch::new(
-            &[
+            vec![
                 TableSearchInfo::new("A".to_string(), "B".to_string()),
                 TableSearchInfo::new("C".to_string(), "D".to_string()),
                 TableSearchInfo::new("AA".to_string(), "BB".to_string()),
                 TableSearchInfo::new("CC".to_string(), "DD".to_string()),
             ],
-            &[
+            vec![
                 ForeignKey::new(
                     "A".to_string(),
                     "B".to_string(),
@@ -341,13 +422,13 @@ mod tests {
     #[test]
     fn should_find_all_joinable_tables_2() -> Result<()> {
         let ts = TableSearch::new(
-            &[
+            vec![
                 TableSearchInfo::new("A".to_string(), "B".to_string()),
                 TableSearchInfo::new("C".to_string(), "D".to_string()),
                 TableSearchInfo::new("AA".to_string(), "BB".to_string()),
                 TableSearchInfo::new("CC".to_string(), "DD".to_string()),
             ],
-            &[
+            vec![
                 ForeignKey::new(
                     "A".to_string(),
                     "B".to_string(),

@@ -104,7 +104,7 @@ impl PostgresStorage {
             .map(TableSearchInfo::from)
             .collect();
 
-        let _please_end_me = TableSearch::new(&tables_search_info, &foreign_keys);
+        let _please_end_me = TableSearch::new(tables_search_info, foreign_keys.clone());
 
         let db_schema: DbSchema = DbSchema::new(tables, foreign_keys);
         Ok(db_schema)

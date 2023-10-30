@@ -108,7 +108,8 @@ pub mod tests {
 		let simple_command = simple_command_creation()?;
 		
 		// TODO: Pass correct lists of Tables and ForeignKeys to table_search
-		let tables: Vec<Table> = Vec::from([]);
+		let tables: Vec<Table> = Vec::from(
+			[Table::new("movies".to_string(), "movie".to_string(), vec![], vec![])]);
 		let fks: Vec<ForeignKey> = Vec::from([]);
 
 		let tables_search_info: Vec<TableSearchInfo> = tables
@@ -119,17 +120,15 @@ pub mod tests {
 		let ts = TableSearch::new(&tables_search_info, &fks);
 
 		let command = Command::SimpleCommand(simple_command);
-		let _query = command_to_query(&projection,&command,&ts)?;
-
-		/* TODO: Uncomment the test after full implementation */
+		let query = command_to_query(&projection,&command,&ts)?;
 		
-		// let ideal_query = "
-		// 	SELECT movies.movie.title,movies.movie.runtime
-		// 	FROM movies.movie
-		// 	WHERE movis.movie.runtime > 200;
-		// ".to_string();
+		let ideal_query = "
+			SELECT movies.movie.title,movies.movie.runtime
+			FROM movies.movie
+			WHERE movies.movie.runtime > 200;
+		".to_string();
 
-		// assert_eq!(clean_query(&query)?,clean_query(&ideal_query)?);
+		assert_eq!(clean_query(&query)?,clean_query(&ideal_query)?);
 
 		Ok(())
 	}
@@ -146,7 +145,8 @@ pub mod tests {
 		let composite_command = composite_command_creation()?;
 		
 		// TODO: Pass correct lists of Tables and ForeignKeys to table_search
-		let tables: Vec<Table> = Vec::from([]);
+		let tables: Vec<Table> = Vec::from(
+			[Table::new("movies".to_string(), "movie".to_string(), vec![], vec![])]);
 		let fks: Vec<ForeignKey> = Vec::from([]);
 		let tables_search_info: Vec<TableSearchInfo> = tables
         .clone()
@@ -156,16 +156,16 @@ pub mod tests {
 		let ts = TableSearch::new(&tables_search_info, &fks);
 
 		let command = Command::CompositeCommand(composite_command);
-		let _query = command_to_query(&projection,&command,&ts)?;
+		let query = command_to_query(&projection,&command,&ts)?;
 
 		/* TODO: Uncomment the test after full implementation */
-		// let ideal_query = "
-		// 	SELECT movies.movie.title, movies.movie.revenue, movies.movie.runtime, movies.movie.release_date
-		// 	FROM movies.movie
-		// 	WHERE (movies.movie.revenue>1000000 OR movies.movie.runtime>200) AND movies.movie.budget > 1000000;
-		// ".to_string();
+		let ideal_query = "
+			SELECT movies.movie.title, movies.movie.revenue, movies.movie.runtime, movies.movie.budget
+			FROM movies.movie
+			WHERE (movies.movie.runtime>200 OR movies.movie.revenue>1000000) AND movies.movie.budget > 1000000;
+		".to_string();
 
-		// assert_eq!(clean_query(&query)?,clean_query(&ideal_query)?);
+		assert_eq!(clean_query(&query)?,clean_query(&ideal_query)?);
 
 		Ok(())
 	}

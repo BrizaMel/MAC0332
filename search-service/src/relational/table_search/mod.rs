@@ -62,7 +62,7 @@ impl TableSearch {
             table_search_graph.add_edge(*origin_index, *foreign_index, weight);
         }
 
-        println!("{:?}", Dot::new(&table_search_graph));
+        // println!("{:?}", Dot::new(&table_search_graph));
 
         Self {
             table_identifier_to_node_index,

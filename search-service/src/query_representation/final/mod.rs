@@ -21,17 +21,18 @@ pub fn command_to_query(projection:&Vec<String>,command:&Command,table_search: &
 
 	let attributes_needed = get_attributes_needed(projection,command)?;
 
-	// let (tables_needed, atributes_pairs_for_join) = table_search.get_join_requirements(&attributes_needed);
+	let (tables_needed, atributes_pairs_for_join) = table_search.get_join_requirements(&attributes_needed);
 
-	// let _from_query = create_from_query(&tables_needed);
+	let from_query = create_from_query(&tables_needed)?;
 	
-	// // println!("{:?}",from_query);
-	// let _select_query = create_select_query(&projection)?;
+	// println!("{:?}",from_query);
+	let select_query = create_select_query(&projection)?;
 
-	// let _where_query = create_where_query(&command, true,&atributes_pairs_for_join)?;
+	let where_query = create_where_query(&command, true,&atributes_pairs_for_join)?;
 
- 	// let final_query = [select_query, from_query, where_query].join("\n");
-	let final_query = "Command to query not implemented yet".to_string();
+ 	let mut final_query = [select_query, from_query, where_query].join("\n");
+	
+	 final_query.push_str(&";".to_string());
 
 	Ok(final_query)
 }
@@ -254,7 +255,7 @@ mod private_tests {
 
 	#[test]
 	fn test_get_tables_needed() -> Result<(),Error> {
-		/* TODO: Uncomment the test after full implementation */
+		/* TODO: Refactor these tests to use table_search.get_join_requirements */
 
 		// let mut attribute_list : Vec<String> = vec![];
 		// let mut expected_tables_needed : Vec<String> = vec![];

@@ -12,16 +12,17 @@ use crate::query_representation::intermediary::{
 
 mod tests;
 
-pub fn command_to_query(projection: &Vec<String>, command: &Command) -> Result<String, Error> {
-    let attributes_needed = get_attributes_needed(projection, command)?;
+pub fn command_to_query(projection: Vec<String>, command: &Command) -> Result<String, Error> {
+    let mut attributes_needed = projection.clone();
+    attributes_needed.extend(get_command_attributes(command));
 
-    let tables_needed = get_tables_needed(&attributes_needed)?;
+    let tables_needed = get_tables_needed(attributes_needed)?;
 
-    let _select_query = create_select_query(&projection)?;
+    let _select_query = create_select_query(projection);
 
-    let _from_query = create_from_query(&tables_needed)?;
+    let _from_query = create_from_query(tables_needed);
 
-    let _where_query = create_where_query(&command, true)?;
+    let _where_query = create_where_query(command, true)?;
 
     // let final_query = [select_query, from_query, where_query].join("\n");
     let final_query = "Command to query not implemented yet".to_string();
@@ -29,55 +30,41 @@ pub fn command_to_query(projection: &Vec<String>, command: &Command) -> Result<S
     Ok(final_query)
 }
 
-fn get_attributes_needed(
-    projection: &Vec<String>,
-    command: &Command,
-) -> Result<Vec<String>, Error> {
-    let mut attributes = Vec::new();
-
-    for attribute in projection.iter() {
-        attributes.push(attribute.to_string());
-    }
-
-    let mut command_attributes = get_command_attributes(&command);
-    attributes.append(&mut command_attributes);
-
-    Ok(attributes)
-}
-
-fn get_tables_needed(_attributes: &Vec<String>) -> Result<Vec<String>, Error> {
+fn get_tables_needed(_attributes: Vec<String>) -> Result<Vec<String>, Error> {
     /* TODO: Given a list of attributes, return the tables needed to join all of them
     in one query (using src/relational/tableSearch) */
 
-    let tables: Vec<String> = Vec::new();
+    let tables: Vec<String> = vec![];
 
     Ok(tables)
 }
 
-fn create_select_query(projection: &Vec<String>) -> Result<String, Error> {
+fn create_select_query(projection: Vec<String>) -> String {
     let mut select_query = "SELECT ".to_owned();
-    let mut peekable_projection = projection.iter().peekable();
-    while let Some(project) = peekable_projection.next() {
-        select_query.push_str(&project);
-        if !peekable_projection.peek().is_none() {
-            select_query.push_str(&",".to_string());
+    let len = projection.len();
+
+    for (idx, column) in projection.iter().enumerate() {
+        select_query.push_str(column);
+        if idx != len {
+            select_query.push_str(",");
         }
     }
 
-    Ok(select_query)
+    select_query
 }
 
-fn create_from_query(tables: &Vec<String>) -> Result<String, Error> {
+fn create_from_query(tables: Vec<String>) -> String {
     let mut from_query = "FROM ".to_owned();
-    let mut peekable_tables = tables.iter().peekable();
-    while let Some(table) = peekable_tables.next() {
-        from_query.push_str(&table);
-        if !peekable_tables.peek().is_none() {
-            from_query.push_str(&",".to_string());
+    let len = tables.len();
+
+    for (idx, table) in tables.iter().enumerate() {
+        from_query.push_str(table);
+        if idx != len {
+            from_query.push_str(",");
         }
     }
 
-    Ok(from_query)
+    from_query
 }
 
 fn create_where_query(command: &Command, initial_call: bool) -> Result<String, Error> {

@@ -28,7 +28,7 @@ mod tests {
         );
 
         let command = Command::SingleCommand(simple_command);
-        let _query = command_to_query(&projection, &command)?;
+        let _query = command_to_query(projection, &command)?;
 
         /* TODO: Uncomment the test after full implementation */
 
@@ -81,7 +81,7 @@ mod tests {
         let composite_command = CompositeCommand::new(Operation::And, nested_commands);
 
         let command = Command::CompositeCommand(composite_command);
-        let _query = command_to_query(&projection, &command)?;
+        let _query = command_to_query(projection, &command)?;
 
         /* TODO: Uncomment the test after full implementation */
 

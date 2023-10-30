@@ -12,12 +12,9 @@ mod tests;
 pub struct PostgresVisitor;
 
 impl Visitor for PostgresVisitor {
-
-    fn visit_command(&self, projection: Vec<String>, command: &Command)  -> Result<String, Error> {
-
-        let query = command_to_query(&projection,command)?;
+    fn visit_command(&self, projection: Vec<String>, command: &Command) -> Result<String, Error> {
+        let query = command_to_query(projection, &command)?;
 
         Ok(query)
     }
-
 }

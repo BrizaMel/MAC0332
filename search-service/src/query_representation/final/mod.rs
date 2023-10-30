@@ -7,7 +7,7 @@
 use anyhow::Error;
 
 use crate::query_representation::intermediary::{
-    composite_command::Operation, get_command_attributes, simple_command::Operator, Command,
+    get_command_attributes, simple_command::Operator, Command,
 };
 
 mod tests;
@@ -76,45 +76,30 @@ fn create_where_query(command: &Command, initial_call: bool) -> Result<String, E
     };
 
     match command {
-        Command::CompositeCommand(_) => {
-            let Command::CompositeCommand(ref composite_command) = command else {  panic!("Wrong Command type");};
+        Command::CompositeCommand(composite_command) => {
             let nested_commands = &composite_command.commands;
 
             if !initial_call {
-                where_query.push_str(&"(".to_string())
+                where_query.push_str("(")
             }
+
             where_query.push_str(&create_where_query(&nested_commands[0], false)?);
-            where_query.push_str(&translate_operation(&composite_command.operation)?);
+            where_query.push_str(&composite_command.operation.to_string());
             where_query.push_str(&create_where_query(&nested_commands[1], false)?);
+
             if !initial_call {
-                where_query.push_str(&")".to_string())
+                where_query.push_str(")")
             }
         }
 
-        Command::SingleCommand(_) => {
-            let Command::SingleCommand(ref simple_command) = command else {  panic!("Wrong Command type");};
-            where_query.push_str(&simple_command.attribute);
-            where_query.push_str(&translate_operator(&simple_command.operator)?);
-            where_query.push_str(&simple_command.value.value);
+        Command::SingleCommand(single_command) => {
+            where_query.push_str(&single_command.attribute);
+            where_query.push_str(&translate_operator(&single_command.operator)?);
+            where_query.push_str(&single_command.value.value);
         }
     }
 
     Ok(where_query)
-}
-
-fn translate_operation(operation: &Operation) -> Result<String, Error> {
-    let operation_translated;
-
-    match operation {
-        Operation::And => {
-            operation_translated = "AND".to_owned();
-        }
-
-        Operation::Or => {
-            operation_translated = "OR".to_owned();
-        }
-    }
-    Ok(operation_translated)
 }
 
 fn translate_operator(operator: &Operator) -> Result<String, Error> {

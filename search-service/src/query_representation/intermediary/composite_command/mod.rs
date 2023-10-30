@@ -1,3 +1,5 @@
+use strum_macros::{Display, EnumString};
+
 use crate::query_representation::intermediary::Command;
 
 #[derive(PartialEq, Debug)]
@@ -6,7 +8,8 @@ pub struct CompositeCommand {
     pub commands: Vec<Command>,
 }
 
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq, Debug, Display, EnumString)]
+#[strum(serialize_all = "UPPERCASE")]
 pub enum Operation {
     And,
     Or,

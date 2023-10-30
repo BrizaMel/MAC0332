@@ -43,8 +43,8 @@ fn create_select_query(projection: Vec<String>) -> String {
 
     for (idx, column) in projection.iter().enumerate() {
         select_query.push_str(column);
-        if idx != len {
-            select_query.push_str(",");
+        if idx != len - 1 {
+            select_query.push_str(", ");
         }
     }
 
@@ -57,8 +57,8 @@ fn create_from_query(tables: Vec<String>) -> String {
 
     for (idx, table) in tables.iter().enumerate() {
         from_query.push_str(table);
-        if idx != len {
-            from_query.push_str(",");
+        if idx != len - 1 {
+            from_query.push_str(", ");
         }
     }
 
@@ -135,6 +135,7 @@ fn translate_operator(operator: &Operator) -> Result<String, Error> {
 mod tests {
 
     use crate::query_representation::intermediary::Command;
+    use crate::query_representation::ultimate::create_select_query;
 
     use crate::query_representation::intermediary::simple_command::{
         DataType, Operator, SingleCommand, Value,
@@ -144,9 +145,27 @@ mod tests {
         CompositeCommand, Operation,
     };
 
-    use crate::query_representation::r#final::command_to_query;
+    use crate::query_representation::ultimate::command_to_query;
 
     use anyhow::Error;
+
+    use super::create_from_query;
+
+    #[test]
+    fn test_create_select_query() {
+        let projection = vec!["column1".into(), "column2".into(), "column3".into()];
+        let select_query = create_select_query(projection);
+
+        assert_eq!(select_query, "SELECT column1, column2, column3");
+    }
+
+    #[test]
+    fn test_create_from_query() {
+        let tables = vec!["table1".into(), "table2".into(), "table3".into()];
+        let from_query = create_from_query(tables);
+
+        assert_eq!(from_query, "FROM table1, table2, table3");
+    }
 
     #[test]
     fn test_command_to_query_simple_command() -> Result<(), Error> {

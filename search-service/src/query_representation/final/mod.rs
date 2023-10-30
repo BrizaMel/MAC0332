@@ -21,17 +21,15 @@ pub fn command_to_query(projection:&Vec<String>,command:&Command,table_search: &
 
 	let attributes_needed = get_attributes_needed(projection,command)?;
 
-	let _tables_needed = get_tables_needed(&attributes_needed)?;
+	// let (tables_needed, atributes_pairs_for_join) = table_search.get_join_requirements(&attributes_needed);
 
-	// Passing this so the function does not panic
-	let _from_query = create_from_query(&vec!["fake table".to_string()])?;
+	// let _from_query = create_from_query(&tables_needed);
 	
-	// println!("{:?}",from_query);
+	// // println!("{:?}",from_query);
+	// let _select_query = create_select_query(&projection)?;
 
-	let _select_query = create_select_query(&projection)?;
+	// let _where_query = create_where_query(&command, true,&atributes_pairs_for_join)?;
 
-	let _where_query = create_where_query(&command, true)?;
-	
  	// let final_query = [select_query, from_query, where_query].join("\n");
 	let final_query = "Command to query not implemented yet".to_string();
 
@@ -53,18 +51,6 @@ fn get_attributes_needed(projection: &Vec<String>,command:&Command) -> Result<Ve
 
 	Ok(attributes)
 }
-
-fn get_tables_needed(_attributes: &Vec<String>) -> Result<Vec<String>,Error>{
-	/* TODO: Given a list of attributes, return the tables needed to join all of them
-	in one query (using src/relational/tableSearch) */
-
-	let tables: Vec<String> = Vec::new();
-
-
-	Ok(tables)
-
-}
-
 fn create_select_query(projection: &Vec<String>) -> Result<String,Error> {
 
 	let mut select_query = "SELECT ".to_owned();
@@ -103,13 +89,20 @@ fn create_from_query(tables:&Vec<String>) -> Result<String,Error> {
 
 }
 
-fn create_where_query(command: &Command, initial_call: bool) -> Result<String,Error> {
+fn create_where_query(command: &Command, initial_call: bool, join_atribute_pairs: &Vec<String>) -> Result<String,Error> {
 
 	let mut where_query = "".to_owned();
 	
 	if initial_call {
-		where_query.push_str("WHERE ")
-		// TODO: Add JOIN filters here
+		where_query.push_str("WHERE ");
+
+		for pair in join_atribute_pairs{
+			let atributes: Vec<&str> = pair.split(":").collect();
+
+			let section = format!("{} = {} AND ", atributes[0], atributes[1]);
+
+			where_query.push_str(&section);
+		}
 	};
 
 	match command {
@@ -119,9 +112,9 @@ fn create_where_query(command: &Command, initial_call: bool) -> Result<String,Er
 			let nested_commands = &composite_command.commands;
 			
 			if !initial_call {where_query.push_str(&"(".to_string())}
-			where_query.push_str(&create_where_query(&nested_commands[0], false)?);
+			where_query.push_str(&create_where_query(&nested_commands[0], false, &vec![])?);
 			where_query.push_str(&translate_operation(&composite_command.operation)?);
-			where_query.push_str(&create_where_query(&nested_commands[1], false)?);
+			where_query.push_str(&create_where_query(&nested_commands[1], false,&vec![])?);
 			if !initial_call {where_query.push_str(&")".to_string())}
 		}
 	

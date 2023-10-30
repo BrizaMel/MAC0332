@@ -11,8 +11,9 @@ use petgraph::{
     dot::Dot,
     graph::{Graph, NodeIndex},
     Undirected,
+    unionfind::UnionFind
 };
-use std::collections::HashMap;
+use std::collections::{HashSet,HashMap};
 
 use crate::relational::entities::ForeignKey;
 
@@ -71,36 +72,66 @@ impl TableSearch {
 
     pub fn get_join_requirements(&self,atrs: &Vec<String>) -> (Vec<String>,Vec<String>) {
 
-        let mut tables_needed:Vec<String> = Vec::from([]);
-        let mut attributes_needed:Vec<String> = Vec::from([]);
+        let mut tables_needed:HashSet<String> = HashSet::from([]);
+        let mut attributes_needed:HashSet<String> = HashSet::from([]);
+
+        let mut tables_uf:UnionFind<usize> = UnionFind::new(atrs.len());
 
         if atrs.len() > 1 {
-            //TODO search for tables and attributes for each pair
-            // get_attibute_pair_requirements()         
+            for i in 0..atrs.len() {
+                for j in i+1..atrs.len() {
+                    let (new_tables, new_attrs) = &self.get_attibute_pair_requirements(&atrs[i], &atrs[j]);
+
+                    if new_tables.len() > 0 {
+                        tables_uf.union(i, j);
+                    }
+
+                    tables_needed.extend(new_tables.to_owned());
+                    attributes_needed.extend(new_attrs.to_owned());
+                }
+            }      
         }else if atrs.len() == 1{
             let (table_str,atr_str) = &self.get_atr_info(&atrs[0]);
-            tables_needed.push(table_str.to_owned());
-            attributes_needed.push(atr_str.to_owned());
+            tables_needed.insert(table_str.to_owned());
+            attributes_needed.insert(atr_str.to_owned());
         }
 
-        (tables_needed,attributes_needed)
+        let table_sets = tables_uf.into_labeling();
+        for i in 0..atrs.len()-1{
+            if table_sets[i] != table_sets[i+1]{
+                panic!("Atributes can't be joined")
+                // TODO: actually throw the error here. I couldn't manage to do it myself :(
+                // TableSearchError::AtributesCantBeJoined()?
+            }
+        }
+
+        (tables_needed.into_iter().collect(),attributes_needed.into_iter().collect())
     }
    
-    // fn get_attibute_pair_requirements(&self,atr1: String, atr2: String) -> (Vec<&String>,Vec<&String>) {
+    fn get_attibute_pair_requirements(&self,atr1: &String, atr2: &String) -> (HashSet<String>,HashSet<String>) {
 
-    //     let (table_str1,_atr_str1) = &self.get_atr_info(&atr1);
-    //     let (table_str2,_atr_str2) = &self.get_atr_info(&atr2);
+        let (table_str1,_atr_str1) = &self.get_atr_info(&atr1);
+        let (table_str2,_atr_str2) = &self.get_atr_info(&atr2);
 
-    //     let mut attributes_needed:Vec<String> = Vec::from([]);
+        let mut attributes_needed:HashSet<String> = HashSet::from([]);
 
-    //     let (tables_needed, fks) = &self.path_to(table_str1.to_string(),table_str2.to_string());
+        // I chose to use unwrap here as this should be receiving a list of proper attributes (from tables
+        // which exist in the given DB). If that is  not the case, this part of the system should be 
+        // refactored.
+        let (tables_needed, fks) = self.path_to(table_str1.to_string(),table_str2.to_string()).unwrap();
 
-    //     for fk in fks {
+        for i in 0..fks.len() {
+            let atributes: Vec<&str> = fks[i].split(":").collect();
 
-    //     }
+            let atribute1 = format!("{}.{}", tables_needed[i], atributes[0]).to_string();
+            let atribute2 = format!("{}.{}", tables_needed[i+1], atributes[1]).to_string();
+            attributes_needed.insert(format!("{}.{}",atribute1,atribute2));
+        }
 
-    //     (tables_needed,attributes_needed);
-    // }
+        let tables_needed_set:HashSet<String> = HashSet::from_iter(tables_needed.into_iter());
+
+        (tables_needed_set,attributes_needed)
+    }
 
     fn get_atr_info(&self, atr: &String) -> (String,String){
         let words_vec: Vec<&str> = atr.split(".").collect();

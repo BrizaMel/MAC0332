@@ -26,14 +26,15 @@ pub fn command_to_query(
     let (tables_needed, atributes_pairs_for_join) =
         table_search.get_join_requirements(&attributes_needed);
 
-    let _select_query = create_select_query(projection);
+    let select_query = create_select_query(projection);
 
-    let _from_query = create_from_query(tables_needed);
+    let from_query = create_from_query(tables_needed);
 
-    let _where_query = create_where_query(command, true, &atributes_pairs_for_join)?;
+    let where_query = create_where_query(command, true, &atributes_pairs_for_join)?;
 
-    // let final_query = [select_query, from_query, where_query].join("\n");
-    let final_query = "Command to query not implemented yet".to_string();
+    let mut final_query = [select_query, from_query, where_query].join("\n");
+
+    final_query.push_str(";");
 
     Ok(final_query)
 }
@@ -158,6 +159,7 @@ mod tests {
     };
 
     use crate::query_representation::ultimate::command_to_query;
+    use crate::query_representation::ultimate::test_utils::clean_query;
     use crate::relational::entities::ForeignKey;
     use crate::relational::table_search::entities::TableSearchInfo;
     use crate::relational::table_search::TableSearch;
@@ -282,23 +284,24 @@ mod tests {
 
         let simple_command = simple_command_creation()?;
 
-        // TODO: Pass correct lists of Tables and ForeignKeys to table_search
-        let tables: Vec<TableSearchInfo> = vec![];
+        let tables = vec![TableSearchInfo::new(
+            "movies".to_string(),
+            "movie".to_string(),
+        )];
         let fks: Vec<ForeignKey> = vec![];
         let ts = TableSearch::new(tables, fks);
 
         let command = Command::SingleCommand(simple_command);
-        let _query = command_to_query(projection, &command, &ts)?;
+        let query = command_to_query(projection, &command, &ts)?;
 
-        /* TODO: Uncomment the test after full implementation */
+        let ideal_query = "
+			SELECT movies.movie.title,movies.movie.runtime
+			FROM movies.movie
+			WHERE movies.movie.runtime > 200;
+		"
+        .to_string();
 
-        // let ideal_query = "
-        // 	SELECT movies.movie.title,movies.movie.runtime
-        // 	FROM movies.movie
-        // 	WHERE movis.movie.runtime > 200;
-        // ".to_string();
-
-        // assert_eq!(clean_query(&query)?,clean_query(&ideal_query)?);
+        assert_eq!(clean_query(&query)?, clean_query(&ideal_query)?);
 
         Ok(())
     }
@@ -313,23 +316,78 @@ mod tests {
 
         let composite_command = composite_command_creation()?;
 
-        // TODO: Pass correct lists of Tables and ForeignKeys to table_search
-        let tables: Vec<TableSearchInfo> = vec![];
+        let tables = vec![TableSearchInfo::new(
+            "movies".to_string(),
+            "movie".to_string(),
+        )];
         let fks: Vec<ForeignKey> = vec![];
         let ts = TableSearch::new(tables, fks);
 
         let command = Command::CompositeCommand(composite_command);
-        let _query = command_to_query(projection, &command, &ts)?;
+        let query = command_to_query(projection, &command, &ts)?;
 
+        let ideal_query = "
+			SELECT movies.movie.title, movies.movie.revenue, movies.movie.runtime, movies.movie.budget
+			FROM movies.movie
+			WHERE (movies.movie.runtime>200 OR movies.movie.revenue>1000000) AND movies.movie.budget > 1000000;
+		"
+        .to_string();
+
+        assert_eq!(clean_query(&query)?, clean_query(&ideal_query)?);
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_get_tables_needed() -> Result<(), Error> {
         /* TODO: Uncomment the test after full implementation */
-        // let ideal_query = "
-        // 	SELECT movies.movie.title, movies.movie.revenue, movies.movie.runtime, movies.movie.release_date
-        // 	FROM movies.movie
-        // 	WHERE (movies.movie.revenue>1000000 OR movies.movie.runtime>200) AND movies.movie.budget > 1000000;
-        // ".to_string();
+        /* TODO: Refactor these tests to use table_search.get_join_requirements */
 
-        // assert_eq!(clean_query(&query)?,clean_query(&ideal_query)?);
-
+        // let mut attribute_list : Vec<String> = vec![];
+        // let mut expected_tables_needed : Vec<String> = vec![];
+        // assert_eq!(get_tables_needed(&attribute_list)?,expected_tables_needed);
+        // attribute_list = vec![
+        // 	"movies.movie.title".to_string()
+        // ];
+        // expected_tables_needed = vec![
+        // 	"movies.movie".to_string()
+        // ];
+        // assert_eq!(get_tables_needed(&attribute_list)?,expected_tables_needed);
+        // attribute_list = vec![
+        // 	"movies.movie.title".to_string(),
+        // 	"movies.movie_languages.movie_id".to_string(),
+        // 	"movies.language.language_name".to_string(),
+        // ];
+        // expected_tables_needed = vec![
+        // 	"movies.language".to_string(),
+        // 	"movies.movie".to_string(),
+        // 	"movies.movie_languages".to_string(),
+        // ];
+        // assert_eq!(get_tables_needed(&attribute_list)?,expected_tables_needed);
+        // attribute_list = vec![
+        // 	"movies.language.language_name".to_string(),
+        // 	"movies.country.country_name".to_string()
+        // ];
+        // expected_tables_needed = vec![
+        // 	"movies.country".to_string(),
+        // 	"movies.language".to_string(),
+        // 	"movies.movie".to_string(),
+        // 	"movies.movie_languages".to_string(),
+        // 	"movies.production_country".to_string()
+        // ];
+        // assert_eq!(get_tables_needed(&attribute_list)?,expected_tables_needed);
+        // attribute_list = vec![
+        // 	"movies.country.country_name".to_string(),
+        // 	"movies.department.department_name".to_string(),
+        // ];
+        // expected_tables_needed = vec![
+        // 	"movies.country".to_string(),
+        // 	"movies.department".to_string(),
+        // 	"movies.movie".to_string(),
+        // 	"movies.movie_crew".to_string(),
+        // 	"movies.production_country".to_string()
+        // ];
+        // assert_eq!(get_tables_needed(&attribute_list)?,expected_tables_needed);
         Ok(())
     }
 }

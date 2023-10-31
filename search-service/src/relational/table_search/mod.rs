@@ -19,6 +19,7 @@ use crate::relational::entities::ForeignKey;
 
 use self::{entities::TableSearchInfo, errors::TableSearchError};
 
+#[derive(Clone)]
 pub struct TableSearch {
     // maps table identifiers (in the format schema_name.table_name) to their corresponding node indices in the graph
     table_identifier_to_node_index: HashMap<String, NodeIndex>,

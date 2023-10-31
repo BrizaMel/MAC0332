@@ -5,11 +5,16 @@
 */
 
 pub mod terminal_expression;
+pub mod compound_expression;
 mod tests;
 
 use crate::traits::Interpreter;
 
 use crate::query_representation::initial::terminal_expression::TerminalExpression;
+use crate::query_representation::initial::compound_expression::{
+    OrExpression,
+    AndExpression
+};
 
 use crate::query_representation::intermediary::Command;
 
@@ -22,9 +27,12 @@ use crate::query_representation::intermediary::simple_command::{
 
 use anyhow::{Error, Ok};
 
+use super::intermediary::composite_command::{Operation, CompositeCommand};
+
 pub enum Expression {
     TerminalExpression(TerminalExpression),
-    // CompoundExpression(CompoundExpression),
+    OrExpression(OrExpression),
+    AndExpression(AndExpression)
 }
 
 impl Interpreter for Expression {
@@ -36,8 +44,69 @@ impl Interpreter for Expression {
 }
 
 pub fn initial_to_command(initial:serde_json::Value) -> Result<Command, Error> {
-    let filters = initial["filters"].to_string().replace('"', "");
-    let parts: Vec<&str> = filters.split(" ").collect();
+    let expression = initial["filters"].to_string().replace('"', "");
+    
+    let command = assemble_command(expression)?;
+
+    Ok(command)
+}
+
+fn assemble_command(expression:String) -> Result<Command, Error> {
+    if expression.contains(") AND (") || expression.contains(") OR (") {
+        let operation;
+        let mut commands = Vec::new();
+        
+        let parts: Vec<&str>;
+        if expression.contains(") AND (") {
+            operation = Operation::And;
+            parts = expression.split(") AND (").collect();
+        } else {
+            operation = Operation::Or;
+            parts = expression.split(") OR (").collect()
+        }
+        
+        let left = parts[0].replace("(", "");
+        let right = parts[1].replace(")", "");
+        commands.push(assemble_command(left)?);
+        commands.push(assemble_command(right)?);
+
+        let composite_command = CompositeCommand::new(
+            operation,
+            commands
+        );
+
+        Ok(Command::CompositeCommand(composite_command))
+    } else if expression.contains(" AND ") || expression.contains(" OR ") {
+        let operation;
+        let mut commands = Vec::new();
+        
+        let parts: Vec<&str>;
+        if expression.contains(" AND ") {
+            operation = Operation::And;
+            parts = expression.split(" AND ").collect();
+        } else {
+            operation = Operation::Or;
+            parts = expression.split(" OR ").collect()
+        }
+        
+        let left = parts[0].replace("(", "");
+        let right = parts[1].to_string();
+        commands.push(assemble_command(left)?);
+        commands.push(assemble_command(right)?);
+
+        let composite_command = CompositeCommand::new(
+            operation,
+            commands
+        );
+        
+        Ok(Command::CompositeCommand(composite_command))
+    } else {
+        return terminal_expression_to_simple_command(expression);
+    }
+}
+
+fn terminal_expression_to_simple_command(expression: String) -> Result<Command, Error> {
+    let parts: Vec<&str> = expression.split(" ").collect();
 
     let attribute = parts[0].to_string();
 

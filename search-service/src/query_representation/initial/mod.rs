@@ -1,6 +1,6 @@
 /*
 	Module responsible for parsing the initial representation
-	of a query to the intermediary representation. It receives the
+	of a query to the intermediary representation. It receives a
 	json from front-end.
 */
 
@@ -8,7 +8,7 @@ pub mod terminal_expression;
 pub mod compound_expression;
 mod tests;
 
-use crate::traits::Interpreter;
+use crate::traits::Expression;
 
 use crate::query_representation::initial::terminal_expression::TerminalExpression;
 use crate::query_representation::initial::compound_expression::{
@@ -17,92 +17,109 @@ use crate::query_representation::initial::compound_expression::{
 };
 
 use crate::query_representation::intermediary::Command;
-
 use crate::query_representation::intermediary::simple_command::{
     SimpleCommand,
     Operator,
     Value,
     DataType
 };
+use crate::query_representation::intermediary::composite_command::{
+    Operation,
+    CompositeCommand
+};
 
 use anyhow::{Error, Ok};
 
-use super::intermediary::composite_command::{Operation, CompositeCommand};
+impl Expression for TerminalExpression {
+    fn interpret(&self) -> Result<Command, Error> {
+        let simple_command = terminal_expression_to_simple_command(self.expression.to_owned())?;
 
-pub enum Expression {
-    TerminalExpression(TerminalExpression),
-    OrExpression(OrExpression),
-    AndExpression(AndExpression)
+        Ok(simple_command)
+    }
 }
 
-impl Interpreter for Expression {
-    fn interpret(&self, context:serde_json::Value) -> Result<Command, Error> {
-        let command = initial_to_command(context)?;
-        
-        Ok(command)
+impl Expression for AndExpression {
+    fn interpret(&self) -> Result<Command, Error> {
+        let operation = Operation::And;
+        let composite_command = compound_expression_to_composite_command(operation, self.left_expression.to_owned(), self.right_expression.to_owned())?;
+
+        Ok(composite_command)
+    }
+}
+
+impl Expression for OrExpression {
+    fn interpret(&self) -> Result<Command, Error> {
+        let operation = Operation::Or;
+        let composite_command = compound_expression_to_composite_command(operation, self.left_expression.to_owned(), self.right_expression.to_owned())?;
+
+        Ok(composite_command)
     }
 }
 
 pub fn initial_to_command(initial:serde_json::Value) -> Result<Command, Error> {
     let expression = initial["filters"].to_string().replace('"', "");
+    println!("initial expression {}", expression);
+    println!();
     
-    let command = assemble_command(expression)?;
+    let command = parse(expression)?;
 
     Ok(command)
 }
 
-fn assemble_command(expression:String) -> Result<Command, Error> {
-    if expression.contains(") AND (") || expression.contains(") OR (") {
-        let operation;
-        let mut commands = Vec::new();
-        
-        let parts: Vec<&str>;
-        if expression.contains(") AND (") {
-            operation = Operation::And;
-            parts = expression.split(") AND (").collect();
-        } else {
-            operation = Operation::Or;
-            parts = expression.split(") OR (").collect()
-        }
-        
-        let left = parts[0].replace("(", "");
-        let right = parts[1].replace(")", "");
-        commands.push(assemble_command(left)?);
-        commands.push(assemble_command(right)?);
-
-        let composite_command = CompositeCommand::new(
-            operation,
-            commands
-        );
-
-        Ok(Command::CompositeCommand(composite_command))
-    } else if expression.contains(" AND ") || expression.contains(" OR ") {
-        let operation;
-        let mut commands = Vec::new();
-        
-        let parts: Vec<&str>;
-        if expression.contains(" AND ") {
-            operation = Operation::And;
-            parts = expression.split(" AND ").collect();
-        } else {
-            operation = Operation::Or;
-            parts = expression.split(" OR ").collect()
-        }
-        
-        let left = parts[0].replace("(", "");
-        let right = parts[1].to_string();
-        commands.push(assemble_command(left)?);
-        commands.push(assemble_command(right)?);
-
-        let composite_command = CompositeCommand::new(
-            operation,
-            commands
-        );
-        
-        Ok(Command::CompositeCommand(composite_command))
+fn parse(expression:String) -> Result<Command, Error> {
+    let parts: Vec<&str>;
+    let command;
+    
+    // in each compound expression parsed remove first ocurrence of '(' and last ocurrence of ')'
+    if expression.contains(") AND (") {
+        parts = expression.split(") AND (").collect();
+        let left_expression = parts[0].replace("(", "");
+        let mut right_expression = parts[1].to_string();
+        let last_occurence = parts[1].rfind(")").unwrap();
+        right_expression.remove(last_occurence);
+        let and_expression = AndExpression::new(left_expression, right_expression);
+        command = and_expression.interpret()?;
+    } else if expression.contains(") OR (") {
+        parts = expression.split(") OR (").collect();
+        let left_expression = parts[0].replace("(", "");
+        let mut right_expression = parts[1].to_string();
+        let last_occurence = parts[1].rfind(")").unwrap();
+        right_expression.remove(last_occurence);
+        let or_expression = OrExpression::new(left_expression, right_expression);
+        command = or_expression.interpret()?;
+    } else if expression.contains(" AND ") {
+        parts = expression.split(" AND ").collect();
+        let left_expression = parts[0].replace("(", "");
+        let right_expression = parts[1].to_string();
+        let and_expression = AndExpression::new(left_expression, right_expression);
+        command = and_expression.interpret()?;
+    } else if expression.contains(" OR ") {
+        parts = expression.split(" OR ").collect();
+        let left_expression = parts[0].replace("(", "");
+        let right_expression = parts[1].to_string();
+        let or_expression = OrExpression::new(left_expression, right_expression);
+        command = or_expression.interpret()?;
     } else {
-        return terminal_expression_to_simple_command(expression);
+        let terminal_expression = TerminalExpression::new(expression);
+        command = terminal_expression.interpret()?;
     }
+
+    Ok(command)
+}
+
+fn compound_expression_to_composite_command(operation:Operation, left_expression:String, right_expression:String) -> Result<Command, Error> {
+    let mut commands = Vec::new();
+
+    commands.push(parse(left_expression)?);
+    commands.push(parse(right_expression)?);
+
+    let composite_command = CompositeCommand::new(
+        operation,
+        commands
+    );
+
+    Ok(Command::CompositeCommand(composite_command))
+
 }
 
 fn terminal_expression_to_simple_command(expression: String) -> Result<Command, Error> {

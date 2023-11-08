@@ -1,5 +1,3 @@
-use crate::query_representation::initial::Expression;
-
 pub struct OrExpression {
     pub left_expression: String,
     pub right_expression: String

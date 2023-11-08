@@ -12,3 +12,7 @@ pub trait Component {
 pub trait Visitor {
     fn visit_command(&self, projection: Vec<String>, command: &Command) -> Result<String, Error>;
 }
+
+pub trait Expression {
+    fn interpret(&self) -> Result<Command, Error>;
+}

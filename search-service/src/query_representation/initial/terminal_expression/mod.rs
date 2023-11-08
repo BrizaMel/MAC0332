@@ -1,5 +1,3 @@
-use crate::query_representation::initial::Expression;
-
 pub struct TerminalExpression {
     pub expression: String,
 }

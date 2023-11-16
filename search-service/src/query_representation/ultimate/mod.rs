@@ -94,8 +94,9 @@ fn create_where_query(
                 where_query.push_str("(")
             }
 
+            let logical_operator = format!(" {} ", composite_command.logical_operator.to_string());
             where_query.push_str(&create_where_query(&nested_commands[0], false, &vec![])?);
-            where_query.push_str(&composite_command.logical_operator.to_string());
+            where_query.push_str(&logical_operator);
             where_query.push_str(&create_where_query(&nested_commands[1], false, &vec![])?);
 
             if !initial_call {
@@ -159,7 +160,6 @@ mod tests {
     };
 
     use crate::query_representation::ultimate::command_to_query;
-    use crate::query_representation::ultimate::test_utils::clean_query;
     use crate::relational::entities::ForeignKey;
     use crate::relational::table_search::entities::TableSearchInfo;
     use crate::relational::table_search::TableSearch;
@@ -167,7 +167,6 @@ mod tests {
     use anyhow::Error;
 
     use super::create_from_query;
-    use super::test_utils::{composite_command_creation, simple_command_creation};
 
     #[test]
     fn test_create_select_query() {
@@ -199,20 +198,24 @@ mod tests {
 
         let command = Command::SingleCommand(simple_command);
 
-        // TODO: Pass correct lists of Tables and ForeignKeys to table_search
-        let tables: Vec<TableSearchInfo> = vec![];
+        let tables: Vec<TableSearchInfo> = vec![TableSearchInfo {
+            schema: "movies".into(),
+            name: "movie".into(),
+        }];
         let fks: Vec<ForeignKey> = vec![];
         let ts = TableSearch::new(tables, fks);
 
-        let _query = command_to_query(projection, &command, &ts)?;
+        let query = command_to_query(projection, &command, &ts)?;
 
-        /* TODO: Uncomment the test after full implementation */
-
-        // assert_eq!(query,"
-        // 	SELECT movies.movie.title,movies.movie.runtime
-        // 	FROM movies.movie
-        // 	WHERE movis.movie.runtime > 200;
-        // 	".to_string());
+        assert_eq!(
+            query,
+            format!(
+                "{}\n{}\n{}",
+                "SELECT movies.movie.title, movies.movie.runtime",
+                "FROM movies.movie",
+                "WHERE movies.movie.runtime > 200;"
+            )
+        );
 
         Ok(())
     }
@@ -226,7 +229,7 @@ mod tests {
         projection.push("movies.movie.budget".to_string());
 
         let mut nested_commands: Vec<Command> = Vec::new();
-        let mut nested_2_commands: Vec<Command> = Vec::new();
+        let mut nested_commands_2: Vec<Command> = Vec::new();
 
         let simple_command = SingleCommand::new(
             "movies.movie.budget".to_string(),
@@ -246,10 +249,10 @@ mod tests {
             Value::new(1000000.to_string(), DataType::Integer),
         );
 
-        nested_2_commands.push(Command::SingleCommand(nested_simple_command_1));
-        nested_2_commands.push(Command::SingleCommand(nested_simple_command_2));
+        nested_commands_2.push(Command::SingleCommand(nested_simple_command_1));
+        nested_commands_2.push(Command::SingleCommand(nested_simple_command_2));
 
-        let nested_composite = CompositeCommand::new(LogicalOperator::Or, nested_2_commands);
+        let nested_composite = CompositeCommand::new(LogicalOperator::Or, nested_commands_2);
 
         nested_commands.push(Command::CompositeCommand(nested_composite));
         nested_commands.push(Command::SingleCommand(simple_command));
@@ -258,136 +261,79 @@ mod tests {
 
         let command = Command::CompositeCommand(composite_command);
 
-        // TODO: Pass correct lists of Tables and ForeignKeys to table_search
-        let tables: Vec<TableSearchInfo> = vec![];
+        let tables: Vec<TableSearchInfo> = vec![TableSearchInfo {
+            schema: "movies".into(),
+            name: "movie".into()
+        }];
         let fks: Vec<ForeignKey> = vec![];
         let ts = TableSearch::new(tables, fks);
 
-        let _query = command_to_query(projection, &command, &ts)?;
+        let query = command_to_query(projection, &command, &ts)?;
 
-        /* TODO: Uncomment the test after full implementation */
-
-        // assert_eq!(query,"
-        // 	SELECT movies.movie.title, movies.movie.revenue, movies.movie.runtime, movies.movie.release_date
-        // 	FROM movies.movie
-        // 	WHERE (movies.movie.revenue>1000000 OR movies.movie.runtime>200) AND movies.movie.budget > 1000000
-        // ".to_string());
+        assert_eq!(
+            query, 
+            format!("{}\n{}\n{}", 
+            "SELECT movies.movie.title, movies.movie.revenue, movies.movie.runtime, movies.movie.budget", 
+            "FROM movies.movie", 
+            "WHERE (movies.movie.runtime > 200 OR movies.movie.revenue > 1000000) AND movies.movie.budget > 1000000;"
+        ));
 
         Ok(())
     }
 
     #[test]
-    fn test_simple_command_to_query() -> Result<(), Error> {
+    fn test_intermediary_to_final_composite_command_2() -> Result<(), Error> {
         let mut projection: Vec<String> = Vec::new();
+        projection.push("movies.movie.movie_id".to_string());
         projection.push("movies.movie.title".to_string());
-        projection.push("movies.movie.runtime".to_string());
 
-        let simple_command = simple_command_creation()?;
-
-        let tables = vec![TableSearchInfo::new(
-            "movies".to_string(),
-            "movie".to_string(),
-        )];
-        let fks: Vec<ForeignKey> = vec![];
-        let ts = TableSearch::new(tables, fks);
+        let simple_command = SingleCommand::new(
+            "movies.country.country_name".to_string(),
+            Operator::EqualTo,
+            Value::new("Brazil".into(), DataType::String),
+        );
 
         let command = Command::SingleCommand(simple_command);
-        let query = command_to_query(projection, &command, &ts)?;
 
-        let ideal_query = "
-			SELECT movies.movie.title,movies.movie.runtime
-			FROM movies.movie
-			WHERE movies.movie.runtime > 200;
-		"
-        .to_string();
+        let tables: Vec<TableSearchInfo> = vec![TableSearchInfo {
+            schema: "movies".into(),
+            name: "movie".into(),
+        }, 
+        TableSearchInfo {
+            schema: "movies".into(),
+            name: "production_country".into(),
+        },
+        TableSearchInfo {
+            schema: "movies".into(), 
+            name: "country".into(),
+        }];
 
-        assert_eq!(clean_query(&query)?, clean_query(&ideal_query)?);
-
-        Ok(())
-    }
-
-    #[test]
-    fn test_composite_command_to_query() -> Result<(), Error> {
-        let mut projection: Vec<String> = Vec::new();
-        projection.push("movies.movie.title".to_string());
-        projection.push("movies.movie.revenue".to_string());
-        projection.push("movies.movie.runtime".to_string());
-        projection.push("movies.movie.budget".to_string());
-
-        let composite_command = composite_command_creation()?;
-
-        let tables = vec![TableSearchInfo::new(
-            "movies".to_string(),
-            "movie".to_string(),
-        )];
-        let fks: Vec<ForeignKey> = vec![];
+        let fks: Vec<ForeignKey> = vec![ForeignKey {
+            schema_name: "movies".into(),
+            table_name: "movie".into(),
+            attribute_name: "movie_id".into(),
+            schema_name_foreign: "movies".into(),
+            table_name_foreign: "production_country".into(),
+            attribute_name_foreign: "movie_id".into(),
+        }, ForeignKey {
+            schema_name: "movies".into(),
+            table_name: "production_country".into(),
+            attribute_name: "country_id".into(),
+            schema_name_foreign: "movies".into(),
+            table_name_foreign: "country".into(),
+            attribute_name_foreign: "country_id".into(),
+        }];
         let ts = TableSearch::new(tables, fks);
 
-        let command = Command::CompositeCommand(composite_command);
         let query = command_to_query(projection, &command, &ts)?;
 
-        let ideal_query = "
-			SELECT movies.movie.title, movies.movie.revenue, movies.movie.runtime, movies.movie.budget
-			FROM movies.movie
-			WHERE (movies.movie.runtime>200 OR movies.movie.revenue>1000000) AND movies.movie.budget > 1000000;
-		"
-        .to_string();
+        assert_eq!(query, format!(
+            "{}\n{}\n{}", 
+            "SELECT movies.movie.movie_id, movies.movie.title", 
+            "FROM movies.movie, movies.production_country, movies.country", "
+            WHERE movies.movie.movie_id = movies.production_country.movie_id AND movies.production_country.country_id = movies.country.country_id AND movies.country.country_name = Brazil"
+        ));
 
-        assert_eq!(clean_query(&query)?, clean_query(&ideal_query)?);
-
-        Ok(())
-    }
-
-    #[test]
-    fn test_get_tables_needed() -> Result<(), Error> {
-        /* TODO: Uncomment the test after full implementation */
-        /* TODO: Refactor these tests to use table_search.get_join_requirements */
-
-        // let mut attribute_list : Vec<String> = vec![];
-        // let mut expected_tables_needed : Vec<String> = vec![];
-        // assert_eq!(get_tables_needed(&attribute_list)?,expected_tables_needed);
-        // attribute_list = vec![
-        // 	"movies.movie.title".to_string()
-        // ];
-        // expected_tables_needed = vec![
-        // 	"movies.movie".to_string()
-        // ];
-        // assert_eq!(get_tables_needed(&attribute_list)?,expected_tables_needed);
-        // attribute_list = vec![
-        // 	"movies.movie.title".to_string(),
-        // 	"movies.movie_languages.movie_id".to_string(),
-        // 	"movies.language.language_name".to_string(),
-        // ];
-        // expected_tables_needed = vec![
-        // 	"movies.language".to_string(),
-        // 	"movies.movie".to_string(),
-        // 	"movies.movie_languages".to_string(),
-        // ];
-        // assert_eq!(get_tables_needed(&attribute_list)?,expected_tables_needed);
-        // attribute_list = vec![
-        // 	"movies.language.language_name".to_string(),
-        // 	"movies.country.country_name".to_string()
-        // ];
-        // expected_tables_needed = vec![
-        // 	"movies.country".to_string(),
-        // 	"movies.language".to_string(),
-        // 	"movies.movie".to_string(),
-        // 	"movies.movie_languages".to_string(),
-        // 	"movies.production_country".to_string()
-        // ];
-        // assert_eq!(get_tables_needed(&attribute_list)?,expected_tables_needed);
-        // attribute_list = vec![
-        // 	"movies.country.country_name".to_string(),
-        // 	"movies.department.department_name".to_string(),
-        // ];
-        // expected_tables_needed = vec![
-        // 	"movies.country".to_string(),
-        // 	"movies.department".to_string(),
-        // 	"movies.movie".to_string(),
-        // 	"movies.movie_crew".to_string(),
-        // 	"movies.production_country".to_string()
-        // ];
-        // assert_eq!(get_tables_needed(&attribute_list)?,expected_tables_needed);
         Ok(())
     }
 }

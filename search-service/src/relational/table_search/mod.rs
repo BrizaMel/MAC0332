@@ -8,7 +8,6 @@ pub mod errors;
 use anyhow::Result;
 use petgraph::{
     algo::dijkstra,
-    dot::Dot,
     graph::{Graph, NodeIndex},
     unionfind::UnionFind,
     Undirected,
@@ -63,8 +62,6 @@ impl TableSearch {
             table_search_graph.add_edge(*origin_index, *foreign_index, weight);
         }
 
-        println!("{:?}", Dot::new(&table_search_graph));
-
         Self {
             table_identifier_to_node_index,
             table_search_graph,
@@ -72,6 +69,7 @@ impl TableSearch {
     }
 
     pub fn get_join_requirements(&self, atrs: &Vec<String>) -> (Vec<String>, Vec<String>) {
+        println!("{:?}", atrs);
         let mut tables_needed: HashSet<String> = HashSet::from([]);
         let mut attributes_needed: HashSet<String> = HashSet::from([]);
 
@@ -89,6 +87,8 @@ impl TableSearch {
 
                     tables_needed.extend(new_tables.to_owned());
                     attributes_needed.extend(new_attrs.to_owned());
+
+                    println!("{:?} \n {:?}", tables_needed, attributes_needed);
                 }
             }
         } else if atrs.len() == 1 {

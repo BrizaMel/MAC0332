@@ -8,12 +8,6 @@ use crate::query_representation::intermediary::Command;
 
 use anyhow::Error;
 
-pub fn clean_query(query: &String) -> Result<String, Error> {
-    let cleaned_query = query.replace(&['\n', '\t', ' '], "");
-
-    Ok(cleaned_query)
-}
-
 pub fn simple_command_creation() -> Result<SingleCommand, Error> {
     let simple_command = SingleCommand::new(
         "movies.movie.runtime".to_string(),

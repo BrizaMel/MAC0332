@@ -134,6 +134,10 @@ select {
   margin-top: 2vh;
 }
 
+h1 {
+  margin-bottom: 2vh;
+}
+
 .select-attr {
   width: 17vw;
   height: 6vh;
@@ -141,4 +145,9 @@ select {
   margin-right: 1vw;
   background-color: white;
   border-radius: 2%;
+}
+
+.multiple-select {
+  width: 80vw;
+  margin-bottom: 6vh;
 }

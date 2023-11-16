@@ -1,21 +1,24 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import SelectComponent from "./components/SelectComponent";
 import updateUUID from "@/helper/UUIDHandler";
 import { validateQueries } from "@/helper/QuerySaver";
 import getSelectedAttributesFromQueries from "@/helper/QuerySaver";
 import { download } from "@/helper/Downloader";
-import mock from "../mock/info-mock.json";
-
-function getFile(): SchemaInfo {
-  return mock.schema_info as SchemaInfo;
-}
+import requestInfo from "@/service/Client";
+import MultipleSelect from "./components/MultipleSelects";
 
 export default function Home() {
-  const [schemaInfo, setSchemaInfo] = useState<SchemaInfo>(getFile());
+  const [schemaInfo, setSchemaInfo] = useState<SchemaInfo>();
+
+  useEffect(() => {
+    const data = requestInfo();
+    Promise.resolve(data).then((value) => setSchemaInfo(value));
+  }, []);
 
   const [queries, setQueries] = useState<QueryModel[]>([]);
+  const [projection, setProjection] = useState<string[]>([]);
 
   function addQueries() {
     setQueries([...queries, updateUUID(queries[queries.length - 1])]);
@@ -34,7 +37,11 @@ export default function Home() {
       console.log("INVALID");
       return;
     }
-    const toSave = getSelectedAttributesFromQueries(queries);
+    const queriesToSave = getSelectedAttributesFromQueries(queries);
+    const toSave = {
+      projection: projection,
+      queries: queriesToSave,
+    } as RequestModel;
 
     const dict = JSON.stringify(toSave);
     download(dict, "query.json");
@@ -42,6 +49,13 @@ export default function Home() {
 
   return (
     <main>
+      <h1>Campos a serem visualizados</h1>
+      <MultipleSelect
+        values={schemaInfo?.attributes}
+        handleUpdate={setProjection}
+      />
+
+      <h1>Filtros</h1>
       {queries.map((query, index) => (
         <SelectComponent
           key={query.id}

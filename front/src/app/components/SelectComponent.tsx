@@ -21,6 +21,10 @@ export default function SelectComponent({
     query.selectedAttribute = value;
   }
 
+  function handleSelectedInput(inputText: string) {
+    query.selectedInput = inputText;
+  }
+
   function handleSelectedOperator(value: string) {
     query.selectedOperator = value;
   }
@@ -39,28 +43,9 @@ export default function SelectComponent({
     );
   }
 
-  function handleInputChange(inputText: string) {
-    query.selectedInput = inputText;
-  }
-
   function handleSelectedLogical(value: string) {
     query.selectedLogical = value;
   }
-
-  const styles = {
-    option: (provided: any, state: any) => ({
-      ...provided,
-      fontWeight: state.isSelected ? "bold" : "normal",
-      color: "black",
-      backgroundColor: state.data.color,
-      fontSize: state.selectProps.myFontSize,
-    }),
-    singleValue: (provided: any, state: any) => ({
-      ...provided,
-      color: "black",
-      fontSize: state.selectProps.myFontSize,
-    }),
-  };
 
   return (
     <div className="select-component">
@@ -69,6 +54,9 @@ export default function SelectComponent({
         <Autocomplete
           className="select-attr"
           options={schemaInfo.attributes.map((attr) => attr.name)}
+          onChange={(event: any, newValue: string | null) => {
+            handleSelectedAttribute(newValue ?? "");
+          }}
           popupIcon={""}
           clearIcon={""}
           renderInput={(params) => (
@@ -99,6 +87,9 @@ export default function SelectComponent({
           popupIcon={""}
           clearIcon={""}
           options={schemaInfo.attributes.map((attr) => attr.name)}
+          onChange={(event: any, newValue: string | null) => {
+            handleSelectedInput(newValue ?? "");
+          }}
           renderInput={(params) => (
             <TextField {...params} label="Digite um valor ou campo" />
           )}
@@ -116,6 +107,7 @@ export default function SelectComponent({
             onChange={(e) => handleSelectedLogical(e.target.value)}
             className="logical-select"
           >
+            <option value="empty"></option>
             <option value="or">Or</option>
             <option value="and">And</option>
             <option value="in">In</option>

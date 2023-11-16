@@ -29,9 +29,18 @@ export function validateQueries(queries: QueryModel[]): boolean {
 function validateQuery(query: QueryModel): boolean {
   if (query.selectedAttribute == undefined || query.selectedAttribute == "")
     return false;
+
   if (query.selectedOperator == undefined || query.selectedOperator == "")
     return false;
-  if (query.subQueries != undefined && !validateQueries(query.subQueries))
+
+  if (query.selectedLogical == undefined) return false;
+
+  if (
+    query.subQueries != undefined &&
+    query.subQueries.length > 0 &&
+    !validateQueries(query.subQueries)
+  ) {
     return false;
+  }
   return true;
 }

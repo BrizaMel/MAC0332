@@ -1,4 +1,9 @@
 /** @type {import('next').NextConfig} */
-const nextConfig = {}
 
-module.exports = nextConfig
+module.exports = {
+  reactStrictMode: true,
+  env: {
+    MOCKED: process.env.MOCKED,
+    ENDPOINT_URL: process.env.ENDPOINT_URL,
+  },
+};

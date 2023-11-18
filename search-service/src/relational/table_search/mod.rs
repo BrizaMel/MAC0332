@@ -134,7 +134,7 @@ impl TableSearch {
 
             let atribute1 = format!("{}.{}", tables_needed[i], atributes[0]).to_string();
             let atribute2 = format!("{}.{}", tables_needed[i + 1], atributes[1]).to_string();
-            attributes_needed.insert(format!("{}.{}", atribute1, atribute2));
+            attributes_needed.insert(format!("{}:{}", atribute1, atribute2));
         }
 
         let tables_needed_set: HashSet<String> = HashSet::from_iter(tables_needed.into_iter());

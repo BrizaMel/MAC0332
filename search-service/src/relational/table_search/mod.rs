@@ -106,9 +106,15 @@ impl TableSearch {
             }
         }
 
+        let mut tables_needed_as_vec: Vec<String> = tables_needed.into_iter().collect();
+        tables_needed_as_vec.sort();
+
+        let mut attributes_needed_as_vec: Vec<String> = attributes_needed.into_iter().collect();
+        attributes_needed_as_vec.sort();
+
         (
-            tables_needed.into_iter().collect(),
-            attributes_needed.into_iter().collect(),
+            tables_needed_as_vec,
+            attributes_needed_as_vec,
         )
     }
 

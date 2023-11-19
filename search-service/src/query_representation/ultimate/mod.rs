@@ -330,7 +330,7 @@ mod tests {
         assert_eq!(query, format!(
             "{}\n{}\n{}", 
             "SELECT movies.movie.movie_id, movies.movie.title", 
-            "FROM movies.movie, movies.country, movies.production_country",
+            "FROM movies.country, movies.movie, movies.production_country",
             "WHERE movies.movie.movie_id = movies.production_country.movie_id AND movies.production_country.country_id = movies.country.country_id AND movies.country.country_name = Brazil;"
         ));
 

@@ -336,4 +336,102 @@ mod tests {
 
         Ok(())
     }
+
+    #[test]
+    fn test_intermediary_to_final_composite_command_3() -> Result<(), Error> {
+        let mut projection: Vec<String> = Vec::new();
+        projection.push("movies.movie.movie_id".to_string());
+        projection.push("movies.movie.title".to_string());
+
+        let composite_command_1 = CompositeCommand::new(LogicalOperator::And, vec![
+            Command::SingleCommand(SingleCommand::new(
+                "movies.production_company.company_name".to_string(),
+                Operator::EqualTo,
+                Value::new("Disney".into(), DataType::String),
+            )), 
+            Command::SingleCommand(SingleCommand::new(
+                "movies.country.country_name".to_string(),
+                Operator::EqualTo,
+                Value::new("United States".to_string(), DataType::String),
+            )),
+        ]);
+
+        let composite_command_2 = CompositeCommand::new(LogicalOperator::Or, vec![
+            Command::CompositeCommand(composite_command_1),
+            Command::SingleCommand(SingleCommand::new(
+                "movies.movie.budget".to_string(),
+                Operator::LessThanOrEqualTo,
+                Value::new("1000".into(), DataType::Integer),
+            )),
+        ]);
+
+        let command = Command::CompositeCommand(composite_command_2);
+
+        let tables =  vec![TableSearchInfo {
+            schema: "movies".into(),
+            name: "movie".into(),
+        }, 
+        TableSearchInfo {
+            schema: "movies".into(),
+            name: "movie_company".into(),
+        }, 
+        TableSearchInfo {
+            schema: "movies".into(),
+            name: "production_company".into(),
+        }, 
+        TableSearchInfo {
+            schema: "movies".into(),
+            name: "production_country".into(),
+        },
+        TableSearchInfo {
+            schema: "movies".into(), 
+            name: "country".into(),
+        }];
+
+        let fks: Vec<ForeignKey> = vec![
+            ForeignKey {
+                schema_name: "movies".into(),
+                table_name: "movie".into(),
+                attribute_name: "movie_id".into(),
+                schema_name_foreign: "movies".into(),
+                table_name_foreign: "movie_company".into(),
+                attribute_name_foreign: "movie_id".into(),
+            },
+            ForeignKey {
+                schema_name: "movies".into(),
+                table_name: "movie_company".into(),
+                attribute_name: "movie_id".into(),
+                schema_name_foreign: "movies".into(),
+                table_name_foreign: "production_company".into(),
+                attribute_name_foreign: "company_id".into(),
+            },
+            ForeignKey {
+                schema_name: "movies".into(),
+                table_name: "movie".into(),
+                attribute_name: "movie_id".into(),
+                schema_name_foreign: "movies".into(),
+                table_name_foreign: "production_country".into(),
+                attribute_name_foreign: "movie_id".into(),
+            }, 
+            ForeignKey {
+                schema_name: "movies".into(),
+                table_name: "production_country".into(),
+                attribute_name: "country_id".into(),
+                schema_name_foreign: "movies".into(),
+                table_name_foreign: "country".into(),
+                attribute_name_foreign: "country_id".into(),
+            }];
+        let ts = TableSearch::new(tables, fks);
+
+        let query = command_to_query(projection, &command, &ts)?;
+
+        assert_eq!(query, format!(
+            "{}\n{}\n{}", 
+            "SELECT movies.movie.movie_id, movies.movie.title", 
+            "FROM movies.country, movies.movie, movies.movie_company, movies.production_country, movies.production_company",
+            "WHERE movies.movie.movie_id = movies.production_country.movie_id AND movies.production_country.country_id = movies.country.country_id AND movies.country.country_name = Brazil AND movies.movie.movie_id = movies.movie_company.movie_id AND movies.movie_company.company_id = movies.production_company.company_id OR movies.movie.budget <= 1000;"
+        ));
+
+        Ok(())
+    }
 }

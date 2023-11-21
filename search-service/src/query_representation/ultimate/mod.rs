@@ -447,7 +447,10 @@ mod tests {
             "{}\n{}\n{}", 
             "SELECT movies.movie.movie_id, movies.movie.title", 
             "FROM movies.country, movies.movie, movies.production_country",
-            "WHERE (movies.movie.movie_id = movies.production_country.movie_id AND movies.production_country.country_id = movies.country.country_id) AND (movies.country.country_name = 'Brazil');"
+            "WHERE (\
+            movies.country.country_id = movies.production_country.country_id AND \
+            movies.movie.movie_id = movies.production_country.movie_id) AND \
+            (movies.country.country_name = 'Brazil');"
         ));
 
         Ok(())
@@ -549,9 +552,7 @@ mod tests {
             movies.country.country_id = movies.production_country.country_id AND \
             movies.movie.movie_id = movies.movie_company.movie_id AND \
             movies.movie.movie_id = movies.production_country.movie_id AND \
-            movies.movie_company.company_id = movies.production_company.company_id AND \
-            movies.production_country.country_id = movies.country.country_id AND \
-            movies.production_country.movie_id = movies.movie.movie_id) \
+            movies.movie_company.company_id = movies.production_company.company_id) \
             AND (\
             (\
             (movies.production_company.company_name = 'Disney') \

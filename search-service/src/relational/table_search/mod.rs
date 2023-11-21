@@ -15,6 +15,8 @@ use petgraph::{
 
 use std::collections::{HashMap, HashSet};
 
+use std::cmp::{min,max};
+
 use crate::relational::entities::ForeignKey;
 
 use self::{entities::TableSearchInfo, errors::TableSearchError};
@@ -93,6 +95,7 @@ impl TableSearch {
             }
         } else if atrs.len() == 1 {
             let (table_str, atr_str) = &self.get_atr_info(&atrs[0]);
+
             tables_needed.insert(table_str.to_owned());
             attributes_needed.insert(atr_str.to_owned());
         }
@@ -140,7 +143,9 @@ impl TableSearch {
 
             let atribute1 = format!("{}.{}", tables_needed[i], atributes[0]).to_string();
             let atribute2 = format!("{}.{}", tables_needed[i + 1], atributes[1]).to_string();
-            attributes_needed.insert(format!("{}:{}", atribute1, atribute2));
+
+            attributes_needed.insert(format!("{}:{}", min(atribute1.to_owned(),atribute2.to_owned()), max(atribute1,atribute2)));
+
         }
 
         let tables_needed_set: HashSet<String> = HashSet::from_iter(tables_needed.into_iter());

@@ -337,6 +337,67 @@ mod tests {
     }
 
     #[test]
+    fn test_command_to_query_attribute_as_value() -> Result<(), Error> {
+        let mut projection: Vec<String> = Vec::new();
+        projection.push("movies.movie.title".to_string());
+        projection.push("movies.person.person_name".to_string());
+
+        let simple_command = SingleCommand::new(
+            "movies.person.person_name".to_string(),
+            Operator::EqualTo,
+            Value::new("movies.movie_cast.character_name".to_string(), DataType::Attribute),
+        );
+
+        let command = Command::SingleCommand(simple_command);
+
+        let tables: Vec<TableSearchInfo> = vec![TableSearchInfo {
+            schema: "movies".into(),
+            name: "movie".into(),
+        }, 
+        TableSearchInfo {
+            schema: "movies".into(),
+            name: "movie_cast".into(),
+        },
+        TableSearchInfo {
+            schema: "movies".into(), 
+            name: "person".into(),
+        }];
+
+        let fks: Vec<ForeignKey> = vec![ForeignKey {
+            schema_name: "movies".into(),
+            table_name: "movie".into(),
+            attribute_name: "movie_id".into(),
+            schema_name_foreign: "movies".into(),
+            table_name_foreign: "movie_cast".into(),
+            attribute_name_foreign: "movie_id".into(),
+        }, ForeignKey {
+            schema_name: "movies".into(),
+            table_name: "movie_cast".into(),
+            attribute_name: "person_id".into(),
+            schema_name_foreign: "movies".into(),
+            table_name_foreign: "person".into(),
+            attribute_name_foreign: "person_id".into(),
+        }];
+
+        let ts = TableSearch::new(tables, fks);
+
+        let query = command_to_query(projection, &command, &ts)?;
+
+        assert_eq!(
+            query,
+            format!(
+                "{}\n{}\n{}",
+                "SELECT movies.movie.title, movies.person.person_name",
+                "FROM movies.movie, movies.movie_cast, movies.person",
+                "WHERE (movies.movie.movie_id = movies.movie_cast.movie_id AND movies.movie_cast.person_id = movies.person.person_id) AND \
+                (movies.person.person_name = movies.movie_cast.character_name);"
+            )
+        );
+
+        Ok(())
+    }
+
+    #[test]
     fn test_intermediary_to_final_composite_command() -> Result<(), Error> {
         let mut projection: Vec<String> = Vec::new();
         projection.push("movies.movie.title".to_string());

@@ -244,6 +244,25 @@ pub mod tests {
             ]
         );
 
+
+        // Testing attribute in the value field
+        let simple_command_with_attribute = Command::SingleCommand(
+            SingleCommand::new(
+                "movies.movie.revenue".to_string(),
+                Operator::GreaterThan,
+                Value::new("movies.movie.budget".to_string(), DataType::Attribute)
+            )
+        );
+        let simple_command_with_attribute_attributes = get_command_attributes(&simple_command_with_attribute);
+        assert_eq!(
+            simple_command_with_attribute_attributes,
+            vec![
+                "movies.movie.budget".to_string(),
+                "movies.movie.revenue".to_string()
+            ]
+        );
+
+
         Ok(())
     }
 }

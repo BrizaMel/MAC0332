@@ -13,7 +13,7 @@ use anyhow::Error;
 
 use crate::traits::{Component, Visitor};
 
-use crate::query_representation::intermediary::single_command::SingleCommand;
+use crate::query_representation::intermediary::single_command::{SingleCommand,DataType};
 
 use crate::query_representation::intermediary::composite_command::CompositeCommand;
 
@@ -40,7 +40,13 @@ pub fn get_command_attributes(command: &Command) -> Vec<String> {
             .collect::<Vec<String>>(),
         Command::SingleCommand(sc) => {
             let attribute = sc.attribute.to_owned();
-            vec![attribute]
+
+            let mut attributes = vec![attribute];
+            if let DataType::Attribute = sc.value.data_type {
+               attributes.push(sc.value.value.to_owned());
+            }
+
+            attributes
         }
     };
 

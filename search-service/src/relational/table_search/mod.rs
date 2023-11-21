@@ -7,11 +7,12 @@ pub mod errors;
 
 use anyhow::Result;
 use petgraph::{
-    algo::dijkstra,
+    algo::astar,
     graph::{Graph, NodeIndex},
     unionfind::UnionFind,
     Undirected,
 };
+
 use std::collections::{HashMap, HashSet};
 
 use crate::relational::entities::ForeignKey;
@@ -58,7 +59,7 @@ impl TableSearch {
 
             let origin_index = table_identifier_to_node_index.get(&origin_table).unwrap();
             let foreign_index = table_identifier_to_node_index.get(&foreign_table).unwrap();
-
+            
             table_search_graph.add_edge(*origin_index, *foreign_index, weight);
         }
 
@@ -88,7 +89,6 @@ impl TableSearch {
                     tables_needed.extend(new_tables.to_owned());
                     attributes_needed.extend(new_attrs.to_owned());
 
-                    println!("{:?} \n {:?}", tables_needed, attributes_needed);
                 }
             }
         } else if atrs.len() == 1 {
@@ -198,41 +198,61 @@ impl TableSearch {
         origin_index: NodeIndex,
         destiny_index: Option<NodeIndex>,
     ) -> Result<(Vec<String>, Vec<String>), TableSearchError> {
-        let node_to_path_cost =
-            dijkstra(&self.table_search_graph, origin_index, destiny_index, |_| 1);
 
-        let mut ordered_nodes: Vec<(NodeIndex, i32)> = node_to_path_cost.into_iter().collect();
-        ordered_nodes.sort_by(|a, b| a.1.cmp(&b.1));
+        let path = astar(
+            &self.table_search_graph,
+            origin_index,               // start
+            |n| if destiny_index.is_none() {
+                    false
+                } else{
+                    n == destiny_index.unwrap()     // is_goal
+                },
+            |_| 1, // edge_cost
+            |_| 0,           // estimate_cost
+        );
 
         let mut tables = vec![];
         let mut ordered_edges = vec![];
-
+        let mut ordered_nodes : Vec<NodeIndex> = vec![origin_index];
+        
+        if !path.is_none() {
+            ordered_nodes = path.unwrap().1;
+        }
+        
         let num_of_nodes = match destiny_index {
-            None => ordered_nodes.len() - 1,
+            None => 0,
             Some(_) => ordered_nodes.len(),
         };
 
+
         for i in 0..ordered_nodes.len() {
-            let (node_index, _) = ordered_nodes[i];
+            let node_index = ordered_nodes[i];
             let table_identifier = self.table_search_graph.node_weight(node_index).unwrap();
             tables.push(table_identifier.clone());
 
             if i > 0 && i < num_of_nodes {
-                let (previous_node_index, _) = ordered_nodes[i - 1];
-                let edge = self
+                let previous_node_index  = ordered_nodes[i - 1];
+                
+                let edge_wrapped = self
                     .table_search_graph
-                    .find_edge(previous_node_index, node_index)
-                    .unwrap();
+                    .find_edge(previous_node_index, node_index);
+
+                if edge_wrapped.is_none() {
+                    continue;
+                }
+
+                let edge = edge_wrapped.unwrap();
 
                 let edge_weight = self
                     .table_search_graph
                     .edge_weight(edge)
                     .ok_or_else(|| TableSearchError::EdgeNotFoundInGraph)?;
 
-                ordered_edges.push(edge_weight.into())
+                ordered_edges.push(edge_weight.into());
+
             }
         }
-
+    
         Ok((tables, ordered_edges))
     }
 }

@@ -27,7 +27,6 @@ pub fn command_to_query(
         table_search.get_join_requirements(&attributes_needed);
 
     let select_query = create_select_query(projection);
-
     let from_query = create_from_query(tables_needed);
 
     let where_query = create_where_query(command, true, &atributes_pairs_for_join)?;
@@ -35,7 +34,6 @@ pub fn command_to_query(
     let mut final_query = [select_query, from_query, where_query].join("\n");
 
     final_query.push_str(";");
-
     Ok(final_query)
 }
 
@@ -84,7 +82,9 @@ fn create_where_query(
 
             where_query.push_str(&section);
         }
+    
     };
+    
 
     match command {
         Command::CompositeCommand(composite_command) => {
@@ -108,6 +108,7 @@ fn create_where_query(
             where_query.push_str(&single_command.attribute);
             where_query.push_str(&translate_operator(&single_command.operator)?);
             where_query.push_str(&single_command.value.value);
+
         }
     }
 
@@ -400,7 +401,7 @@ mod tests {
             ForeignKey {
                 schema_name: "movies".into(),
                 table_name: "movie_company".into(),
-                attribute_name: "movie_id".into(),
+                attribute_name: "company_id".into(),
                 schema_name_foreign: "movies".into(),
                 table_name_foreign: "production_company".into(),
                 attribute_name_foreign: "company_id".into(),
@@ -427,11 +428,33 @@ mod tests {
 
         assert_eq!(query, format!(
             "{}\n{}\n{}", 
-            "SELECT movies.movie.movie_id, movies.movie.title", 
-            "FROM movies.country, movies.movie, movies.movie_company, movies.production_country, movies.production_company",
-            "WHERE movies.movie.movie_id = movies.production_country.movie_id AND movies.production_country.country_id = movies.country.country_id AND movies.country.country_name = Brazil AND movies.movie.movie_id = movies.movie_company.movie_id AND movies.movie_company.company_id = movies.production_company.company_id OR movies.movie.budget <= 1000;"
-        ));
+            "SELECT movies.movie.movie_id, movies.movie.title",
+            "FROM movies.country, movies.movie, movies.movie_company, movies.production_company, movies.production_country",
+            "WHERE \
+                (
+                    movies.country.country_id = movies.production_country.country_id\
+                    AND movies.movie.movie_id = movies.movie_company.movie_id\
+                    AND movies.movie.movie_id = movies.production_country.movie_id\
+                    AND movies.movie_company.company_id = movies.production_company.company_id\
+                    AND movies.production_country.country_id = movies.country.country_id\
+                    AND movies.production_country.movie_id = movies.movie.movie_id\
+                )\
+                AND\
+                (\
+                    (\
+                        movies.production_company.company_name = 'Disney'\
+                        AND movies.country.country_name = 'United States'\
+                    )\
+                    OR\
+                    movies.movie.budget <= 1000z
+                );"
+            )
+        );
 
         Ok(())
     }
 }
+
+/*
+
+*/

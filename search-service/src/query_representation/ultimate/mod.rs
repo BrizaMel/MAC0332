@@ -30,7 +30,7 @@ pub fn command_to_query(
     let select_query = create_select_query(projection);
     let from_query = create_from_query(tables_needed);
 
-    let where_query = create_where_query(command, true, &atributes_pairs_for_join)?;
+    let where_query = create_where_query(command, &atributes_pairs_for_join)?;
 
     let mut final_query = [select_query, from_query, where_query].join("\n");
 
@@ -68,40 +68,59 @@ fn create_from_query(tables: Vec<String>) -> String {
 
 fn create_where_query(
     command: &Command,
-    initial_call: bool,
     join_atribute_pairs: &Vec<String>,
 ) -> Result<String, Error> {
-    let mut where_query = "".to_owned();
 
-    if initial_call {
-        where_query.push_str("WHERE ");
+    let mut where_query = "WHERE ".to_owned();
 
-        for pair in join_atribute_pairs {
-            let atributes: Vec<&str> = pair.split(":").collect();
-
-            let section = format!("{} = {} AND ", atributes[0], atributes[1]);
-
-            where_query.push_str(&section);
-        }
+    where_query = create_where_for_join(where_query.to_owned(),join_atribute_pairs)?;
     
-    };
+    if join_atribute_pairs.len() > 0{
+        where_query.push_str(" AND ");
+    }
+
+    where_query = create_where_for_command(where_query.to_owned(),command)?;
+
+
+    Ok(where_query)
+}
+
+fn create_where_for_join(mut where_query: String,join_atribute_pairs: &Vec<String>) -> Result<String, Error>{
+
+    if join_atribute_pairs.len() > 0{
+        where_query.push_str("(");
+    }
+
+    for pair in join_atribute_pairs {
+        let atributes: Vec<&str> = pair.split(":").collect();
+
+        let section = format!("{} = {} AND ", atributes[0], atributes[1]);
+
+        where_query.push_str(&section);
+    }
+
+    if join_atribute_pairs.len() > 0{
+        where_query = where_query[0..where_query.len()-5].to_string();
+        where_query.push_str(")");
+    } 
+
+    Ok(where_query)
+}
+
+fn create_where_for_command(mut where_query: String ,command: &Command) -> Result<String, Error> {
+    
+    where_query.push_str("(");
     
     match command {
         Command::CompositeCommand(composite_command) => {
             let nested_commands = &composite_command.commands;
 
-            if !initial_call {
-                where_query.push_str("(")
-            }
 
             let logical_operator = format!(" {} ", composite_command.logical_operator.to_string());
-            where_query.push_str(&create_where_query(&nested_commands[0], false, &vec![])?);
+            where_query = create_where_for_command(where_query.to_owned(),&nested_commands[0])?;
             where_query.push_str(&logical_operator);
-            where_query.push_str(&create_where_query(&nested_commands[1], false, &vec![])?);
+            where_query = create_where_for_command(where_query.to_owned(),&nested_commands[1])?;
 
-            if !initial_call {
-                where_query.push_str(")")
-            }
         }
 
         Command::SingleCommand(single_command) => {
@@ -119,6 +138,8 @@ fn create_where_query(
 
         }
     }
+
+    where_query.push_str(")");
 
     Ok(where_query)
 }
@@ -215,19 +236,69 @@ mod tests {
 
         let command = Command::CompositeCommand(composite_command);
 
-        let query = create_where_query(&command, true, &atributes_pairs_for_join)?;
+        let query = create_where_query(&command, &atributes_pairs_for_join)?;
 
         assert_eq!(
             query,
             format!(
                 "{}",
-                "WHERE movies.movie.title = 'Interstellar' OR movies.movie.runtime > 300",
+                "WHERE ((movies.movie.title = 'Interstellar') OR (movies.movie.runtime > 300))",
             )
         );
 
         Ok(())
 
     }
+
+  #[test]
+    fn test_create_where_query_2() -> Result<(), Error> {
+
+        let atributes_pairs_for_join = vec![
+            "movies.movie.movie_id:movies.production_country.movie_id".into(),
+            "movies.production_country.country_id:movies.country.country_id".into(),
+        ];
+
+        let composite_command_1 = CompositeCommand::new(LogicalOperator::Or, vec![
+            Command::SingleCommand(SingleCommand::new(
+                "movies.country.country_name".to_string(),
+                Operator::EqualTo,
+                Value::new("Brazil".into(), DataType::String),
+            )), 
+            Command::SingleCommand(SingleCommand::new(
+                "movies.country.country_name".to_string(),
+                Operator::EqualTo,
+                Value::new("United States".to_string(), DataType::String),
+            )),
+        ]);
+
+        let composite_command_2 = CompositeCommand::new(LogicalOperator::And, vec![
+            Command::CompositeCommand(composite_command_1),
+            Command::SingleCommand(SingleCommand::new(
+                "movies.movie.budget".to_string(),
+                Operator::GreaterThan,
+                Value::new("1000000".into(), DataType::Integer),
+            )),
+        ]);
+
+        let command = Command::CompositeCommand(composite_command_2);
+
+        let query = create_where_query(&command, &atributes_pairs_for_join)?;
+
+        assert_eq!(
+            query,
+            format!(
+                "{}",
+                "WHERE (movies.movie.movie_id = movies.production_country.movie_id AND \
+                movies.production_country.country_id = movies.country.country_id) AND \
+                (((movies.country.country_name = 'Brazil') OR \
+                (movies.country.country_name = 'United States')) AND \
+                (movies.movie.budget > 1000000))",
+            )
+        );
+
+        Ok(())
+    }
+
 
     #[test]
     fn test_command_to_query_simple_command() -> Result<(), Error> {
@@ -258,7 +329,7 @@ mod tests {
                 "{}\n{}\n{}",
                 "SELECT movies.movie.title, movies.movie.runtime",
                 "FROM movies.movie",
-                "WHERE movies.movie.runtime > 200;"
+                "WHERE (movies.movie.runtime > 200);"
             )
         );
 
@@ -320,7 +391,7 @@ mod tests {
             format!("{}\n{}\n{}", 
             "SELECT movies.movie.title, movies.movie.revenue, movies.movie.runtime, movies.movie.budget", 
             "FROM movies.movie", 
-            "WHERE (movies.movie.runtime > 200 OR movies.movie.revenue > 1000000) AND movies.movie.budget > 1000000;"
+            "WHERE (((movies.movie.runtime > 200) OR (movies.movie.revenue > 1000000)) AND (movies.movie.budget > 1000000));"
         ));
 
         Ok(())
@@ -376,7 +447,7 @@ mod tests {
             "{}\n{}\n{}", 
             "SELECT movies.movie.movie_id, movies.movie.title", 
             "FROM movies.country, movies.movie, movies.production_country",
-            "WHERE movies.movie.movie_id = movies.production_country.movie_id AND movies.production_country.country_id = movies.country.country_id AND movies.country.country_name = 'Brazil';"
+            "WHERE (movies.movie.movie_id = movies.production_country.movie_id AND movies.production_country.country_id = movies.country.country_id) AND (movies.country.country_name = 'Brazil');"
         ));
 
         Ok(())
@@ -474,24 +545,20 @@ mod tests {
             "{}\n{}\n{}", 
             "SELECT movies.movie.movie_id, movies.movie.title",
             "FROM movies.country, movies.movie, movies.movie_company, movies.production_company, movies.production_country",
-            "WHERE \
-                (
-                    movies.country.country_id = movies.production_country.country_id\
-                    AND movies.movie.movie_id = movies.movie_company.movie_id\
-                    AND movies.movie.movie_id = movies.production_country.movie_id\
-                    AND movies.movie_company.company_id = movies.production_company.company_id\
-                    AND movies.production_country.country_id = movies.country.country_id\
-                    AND movies.production_country.movie_id = movies.movie.movie_id\
-                )\
-                AND\
-                (\
-                    (\
-                        movies.production_company.company_name = 'Disney'\
-                        AND movies.country.country_name = 'United States'\
-                    )\
-                    OR\
-                    movies.movie.budget <= 1000z
-                );"
+            "WHERE (\
+            movies.country.country_id = movies.production_country.country_id AND \
+            movies.movie.movie_id = movies.movie_company.movie_id AND \
+            movies.movie.movie_id = movies.production_country.movie_id AND \
+            movies.movie_company.company_id = movies.production_company.company_id AND \
+            movies.production_country.country_id = movies.country.country_id AND \
+            movies.production_country.movie_id = movies.movie.movie_id) \
+            AND (\
+            (\
+            (movies.production_company.company_name = 'Disney') \
+            AND \
+            (movies.country.country_name = 'United States')\
+            ) \
+            OR (movies.movie.budget <= 1000));"
             )
         );
 

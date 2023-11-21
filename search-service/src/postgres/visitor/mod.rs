@@ -79,8 +79,8 @@ mod tests {
             Arc::new(postgres_visitor),
         )?;
 
-        assert_eq!(sc_return, "SELECT movies.movie.runtime, movies.movie.revenue\nFROM movies.movie\nWHERE movies.movie.runtime > 200;".to_string());
-        assert_eq!(cc_return, "SELECT movies.movie.runtime, movies.movie.revenue\nFROM movies.movie\nWHERE movies.movie.runtime > 200 AND movies.movie.revenue > 1000000;".to_string());
+        assert_eq!(sc_return, "SELECT movies.movie.runtime, movies.movie.revenue\nFROM movies.movie\nWHERE (movies.movie.runtime > 200);".to_string());
+        assert_eq!(cc_return, "SELECT movies.movie.runtime, movies.movie.revenue\nFROM movies.movie\nWHERE ((movies.movie.runtime > 200) AND (movies.movie.revenue > 1000000));".to_string());
 
         Ok(())
     }

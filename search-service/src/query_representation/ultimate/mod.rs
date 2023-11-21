@@ -10,7 +10,8 @@ pub mod test_utils;
 
 use crate::{
     query_representation::intermediary::{
-        get_command_attributes, simple_command::Operator, Command,
+        get_command_attributes, simple_command::DataType,
+        simple_command::Operator, Command,
     },
     relational::table_search::TableSearch,
 };
@@ -85,7 +86,6 @@ fn create_where_query(
     
     };
     
-
     match command {
         Command::CompositeCommand(composite_command) => {
             let nested_commands = &composite_command.commands;
@@ -107,7 +107,15 @@ fn create_where_query(
         Command::SingleCommand(single_command) => {
             where_query.push_str(&single_command.attribute);
             where_query.push_str(&translate_operator(&single_command.operator)?);
-            where_query.push_str(&single_command.value.value);
+
+            if let DataType::String = &single_command.value.data_type {
+                where_query.push_str("'");
+                where_query.push_str(&single_command.value.value);
+                where_query.push_str("'");
+            }
+            else{
+                where_query.push_str(&single_command.value.value);
+            }
 
         }
     }
@@ -168,6 +176,7 @@ mod tests {
     use anyhow::Error;
 
     use super::create_from_query;
+    use super::create_where_query;
 
     #[test]
     fn test_create_select_query() {
@@ -183,6 +192,41 @@ mod tests {
         let from_query = create_from_query(tables);
 
         assert_eq!(from_query, "FROM table1, table2, table3");
+    }
+
+
+    #[test]
+    fn test_create_where_query_1() -> Result<(), Error> {
+
+        let atributes_pairs_for_join = vec![];
+
+        let composite_command = CompositeCommand::new(LogicalOperator::Or, vec![
+            Command::SingleCommand(SingleCommand::new(
+                "movies.movie.title".to_string(),
+                Operator::EqualTo,
+                Value::new("Interstellar".into(), DataType::String),
+            )), 
+            Command::SingleCommand(SingleCommand::new(
+                "movies.movie.runtime".to_string(),
+                Operator::GreaterThan,
+                Value::new("300".into(), DataType::Integer),
+            )),
+        ]);
+
+        let command = Command::CompositeCommand(composite_command);
+
+        let query = create_where_query(&command, true, &atributes_pairs_for_join)?;
+
+        assert_eq!(
+            query,
+            format!(
+                "{}",
+                "WHERE movies.movie.title = 'Interstellar' OR movies.movie.runtime > 300",
+            )
+        );
+
+        Ok(())
+
     }
 
     #[test]
@@ -332,7 +376,7 @@ mod tests {
             "{}\n{}\n{}", 
             "SELECT movies.movie.movie_id, movies.movie.title", 
             "FROM movies.country, movies.movie, movies.production_country",
-            "WHERE movies.movie.movie_id = movies.production_country.movie_id AND movies.production_country.country_id = movies.country.country_id AND movies.country.country_name = Brazil;"
+            "WHERE movies.movie.movie_id = movies.production_country.movie_id AND movies.production_country.country_id = movies.country.country_id AND movies.country.country_name = 'Brazil';"
         ));
 
         Ok(())

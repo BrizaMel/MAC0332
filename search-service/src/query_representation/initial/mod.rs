@@ -150,3 +150,122 @@ fn terminal_expression_to_simple_command(expression: String) -> Result<Command, 
 
     Ok(Command::SimpleCommand(command))
 }
+
+
+// Private functions tests
+
+#[cfg(test)]
+mod private_tests {
+
+    use crate::query_representation::intermediary::{simple_command, composite_command};
+
+    use super::*;
+
+    #[test]
+    fn test_parse_with_terminal_expression_only() -> Result<(), Error> {
+        let expression = "movies.movie.revenue gt 100000".to_string();
+
+        let simple_command = SimpleCommand::new(
+			"movies.movie.revenue".to_string(),
+			Operator::GreaterThan,
+			Value::new(
+				100000.to_string(),
+				DataType::Integer
+			)
+		);
+
+		let command = Command::SimpleCommand(simple_command);
+
+		assert_eq!(parse(expression)?,command);
+
+		Ok(())
+    }
+
+    #[test]
+    fn test_parse_with_composite_expression_no_parenthesis() -> Result<(), Error> {
+        let expression = "movies.movie.revenue gt 100000 AND movies.movie.genre eq Comedy".to_string();
+
+        let operation = Operation::And;
+        let mut commands: Vec<Command> = Vec::new();
+
+        let simple_command_1 = SimpleCommand::new("movies.movie.revenue".to_string(),Operator::GreaterThan,Value::new(100000.to_string(),DataType::Integer));
+        let simple_command_2 = SimpleCommand::new("movies.movie.genre".to_string(),Operator::EqualTo,Value::new("Comedy".to_string(),DataType::String));
+
+        commands.push(Command::SimpleCommand(simple_command_1));
+        commands.push(Command::SimpleCommand(simple_command_2));
+
+        let composite_command = CompositeCommand::new(operation,commands);
+
+        let command = Command::CompositeCommand(composite_command);
+
+        assert_eq!(parse(expression)?,command);
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_parse_with_composite_expression_with_parenthesis() -> Result<(), Error> {
+        let expression = "(movies.movie.revenue gt 100000) AND (movies.movie.genre eq Comedy)".to_string();
+
+        let operation = Operation::And;
+        let mut commands: Vec<Command> = Vec::new();
+
+        let simple_command_1 = SimpleCommand::new("movies.movie.revenue".to_string(),Operator::GreaterThan,Value::new(100000.to_string(),DataType::Integer));
+        let simple_command_2 = SimpleCommand::new("movies.movie.genre".to_string(),Operator::EqualTo,Value::new("Comedy".to_string(),DataType::String));
+
+        commands.push(Command::SimpleCommand(simple_command_1));
+        commands.push(Command::SimpleCommand(simple_command_2));
+
+        let composite_command = CompositeCommand::new(operation,commands);
+
+        let command = Command::CompositeCommand(composite_command);
+
+        assert_eq!(parse(expression)?,command);
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_compound_expression_to_composite_command() -> Result<(), Error> {
+        let left_expression = "movies.movie.release_date lt 01-01-2000".to_string();
+        let right_expression = "movies.movie.genre eq Comedy".to_string();
+        
+        let operation = Operation::Or;
+        let mut commands: Vec<Command> = Vec::new();
+
+        let simple_command_1 = SimpleCommand::new("movies.movie.release_date".to_string(),Operator::LessThan,Value::new("01-01-2000".to_string(),DataType::String));
+        let simple_command_2 = SimpleCommand::new("movies.movie.genre".to_string(),Operator::EqualTo,Value::new("Comedy".to_string(),DataType::String));
+
+        commands.push(Command::SimpleCommand(simple_command_1));
+        commands.push(Command::SimpleCommand(simple_command_2));
+
+        let composite_command = CompositeCommand::new(operation,commands);
+
+        let command = Command::CompositeCommand(composite_command);
+
+        assert_eq!(compound_expression_to_composite_command(Operation::Or, left_expression, right_expression)?,command);
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_terminal_expression_to_simple_command() -> Result<(), Error> {
+        let expression = "movies.movie.revenue gt 100000".to_string();
+
+        let simple_command = SimpleCommand::new(
+			"movies.movie.revenue".to_string(),
+			Operator::GreaterThan,
+			Value::new(
+				100000.to_string(),
+				DataType::Integer
+			)
+		);
+
+		let command = Command::SimpleCommand(simple_command);
+
+		assert_eq!(terminal_expression_to_simple_command(expression)?,command);
+
+		Ok(())
+
+    }
+}

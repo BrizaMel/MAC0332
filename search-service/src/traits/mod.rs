@@ -1,6 +1,5 @@
 use std::sync::Arc;
 
-use crate::query_representation::initial::Expression;
 use crate::query_representation::intermediary::Command;
 
 use anyhow::Error;

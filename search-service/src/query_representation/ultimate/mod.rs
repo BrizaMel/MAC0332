@@ -10,8 +10,8 @@ pub mod test_utils;
 
 use crate::{
     query_representation::intermediary::{
-        get_command_attributes, simple_command::DataType,
-        simple_command::Operator, Command,
+        get_command_attributes, single_command::DataType,
+        single_command::Operator, Command,
     },
     relational::table_search::TableSearch,
 };
@@ -181,7 +181,7 @@ mod tests {
     use crate::query_representation::intermediary::Command;
     use crate::query_representation::ultimate::create_select_query;
 
-    use crate::query_representation::intermediary::simple_command::{
+    use crate::query_representation::intermediary::single_command::{
         DataType, Operator, SingleCommand, Value,
     };
 

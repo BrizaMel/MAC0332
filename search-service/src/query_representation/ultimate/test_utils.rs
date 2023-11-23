@@ -1,7 +1,7 @@
 use crate::query_representation::intermediary::composite_command::{
     CompositeCommand, LogicalOperator,
 };
-use crate::query_representation::intermediary::simple_command::{
+use crate::query_representation::intermediary::single_command::{
     DataType, Operator, SingleCommand, Value,
 };
 use crate::query_representation::intermediary::Command;

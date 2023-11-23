@@ -4,7 +4,7 @@
 */
 
 pub mod composite_command;
-pub mod simple_command;
+pub mod single_command;
 pub mod tests;
 
 use std::sync::Arc;
@@ -13,7 +13,7 @@ use anyhow::Error;
 
 use crate::traits::{Component, Visitor};
 
-use crate::query_representation::intermediary::simple_command::SingleCommand;
+use crate::query_representation::intermediary::single_command::SingleCommand;
 
 use crate::query_representation::intermediary::composite_command::CompositeCommand;
 

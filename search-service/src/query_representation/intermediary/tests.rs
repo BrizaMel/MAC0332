@@ -3,7 +3,7 @@ pub mod tests {
 
     use crate::query_representation::intermediary::{get_command_attributes, Command};
 
-    use crate::query_representation::intermediary::simple_command::{
+    use crate::query_representation::intermediary::single_command::{
         DataType, Operator, SingleCommand, Value,
     };
 

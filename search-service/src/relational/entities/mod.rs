@@ -16,7 +16,7 @@ pub struct Table {
     pub primary_keys: Vec<PrimaryKey>,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Clone)]
 pub struct ForeignKey {
     pub schema_name: String,
     pub table_name: String,

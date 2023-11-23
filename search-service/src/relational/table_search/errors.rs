@@ -8,6 +8,9 @@ pub enum TableSearchError {
     #[error("Edge not found int graph")]
     EdgeNotFoundInGraph,
 
+    #[error("Atributes can't be joined")]
+    AtributesCantBeJoined,
+
     #[error(transparent)]
     Unknown(#[from] anyhow::Error),
 }

@@ -20,6 +20,25 @@ services:
       timeout: 3s
       retries: 3
 
+  mysqldb:
+    container_name: search-service-mysql
+    image: mysql:8.0
+    restart: always
+    ports:
+      - "3306:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: search-service
+      MYSQL_USER: search-service
+      MYSQL_PASSWORD: search-service
+      MSQL_DB: search-service
+    volumes: 
+      - mysqlvolume:/var/lib/
+    healthcheck:
+      test: ["CMD", "mysqladmin" ,"ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+  
   server:
     container_name: search-service-server
     ports:
@@ -33,7 +52,11 @@ services:
     depends_on:
       postgresdb:
         condition: service_healthy
+      mysqldb:
+        condition: service_healthy
 
 volumes:
   sbcbddb:
+    driver: local
+  mysqlvolume:
     driver: local

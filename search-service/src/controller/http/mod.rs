@@ -3,17 +3,19 @@ use std::net::SocketAddr;
 
 use std::sync::Arc;
 
-use crate::postgres::{PostgresConfig,PostgresStorage};
+use crate::traits::DatabaseOperations;
+
+use crate::database_storage::DatabaseStorage;
 
 pub struct AppState {
-    db: PostgresStorage,
+    db: DatabaseStorage,
 }
 
 pub async fn run_http_server() -> anyhow::Result<()> {
     let addr: SocketAddr = "0.0.0.0:3000".parse().expect("provide a valid address");
 
-    //Choose correct Storage classe, depending on the aplication DBMS 
-    let storage = PostgresStorage::new(PostgresConfig::new()).await.expect("Error initializing psql_storage");
+    // Choose correct Storage class, depending on the aplication DBMS 
+    let storage = DatabaseStorage::new().await;
 
     let app_state = Arc::new(AppState { db: storage });
 

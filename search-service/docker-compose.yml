@@ -45,6 +45,7 @@ services:
       - 3000:3000
     build: .
     environment:
+      DMBS: postgres
       DB_HOST: search-service-pg
       DB_PORT: 5432
       ALLOWED_SCHEMAS: public,movies # Schemas the server can query (split by ',')

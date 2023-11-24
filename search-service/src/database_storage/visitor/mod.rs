@@ -10,12 +10,12 @@ use crate::query_representation::ultimate::command_to_query;
 use anyhow::Error;
 
 #[derive(Clone)]
-pub struct PostgresVisitor {
+pub struct DatabaseVisitor {
     //TableSearch struct with information on the db's tables
     pub table_search: TableSearch,
 }
 
-impl PostgresVisitor {
+impl DatabaseVisitor {
     pub fn new(tables: Vec<TableSearchInfo>, foreign_keys: Vec<ForeignKey>) -> Self {
         Self {
             table_search: TableSearch::new(tables, foreign_keys),
@@ -23,7 +23,7 @@ impl PostgresVisitor {
     }
 }
 
-impl Visitor for PostgresVisitor {
+impl Visitor for DatabaseVisitor {
     fn visit_command(&self, projection: Vec<String>, command: &Command) -> Result<String, Error> {
         let query = command_to_query(projection, command, &self.table_search)?;
 
@@ -41,7 +41,7 @@ mod tests {
         create_composite_command, create_simple_command,
     };
 
-    use crate::postgres::visitor::PostgresVisitor;
+    use crate::database_storage::visitor::DatabaseVisitor;
 
     use crate::relational::entities::ForeignKey;
     use crate::relational::table_search::entities::TableSearchInfo;
@@ -61,7 +61,7 @@ mod tests {
         )];
         let fks: Vec<ForeignKey> = vec![];
 
-        let postgres_visitor = PostgresVisitor::new(tables, fks);
+        let postgres_visitor = DatabaseVisitor::new(tables, fks);
 
         let sc_return = Command::SingleCommand(simple_command).accept(
             vec![

@@ -1,10 +1,9 @@
-use anyhow::{Ok, Result};
+use anyhow::{Ok, Result, Error};
 use deadpool_postgres::{Manager, ManagerConfig, Object, Pool, RecyclingMethod};
 use tokio_postgres::NoTls;
 
 pub mod queries;
 pub mod tests;
-pub mod visitor;
 
 use crate::relational::entities::{Attribute, DbSchema, ForeignKey, PrimaryKey, Table};
 use crate::relational::table_search::entities::TableSearchInfo;
@@ -77,13 +76,13 @@ impl PostgresStorage {
         })
     }
 
-    pub async fn get_client(&self) -> Result<Object> {
+    async fn get_client(&self) -> Result<Object> {
         let client = self.pool.get().await?;
 
         Ok(client)
     }
 
-    pub async fn get_db_schema_info(&self) -> Result<DbSchema> {
+    pub async fn get_db_schema_info(&self) -> Result<DbSchema,Error> {
         let allowed_schemas: &Vec<String> = &self.allowed_schemas;
 
         let this_client = self
@@ -225,7 +224,4 @@ impl PostgresStorage {
         Ok(foreign_keys_vec)
     }
 
-    pub async fn return_result(&self) -> &str {
-        return "Rebolarion";
-    }
 }

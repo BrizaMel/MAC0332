@@ -140,12 +140,29 @@ fn terminal_expression_to_simple_command(expression: String) -> Result<Command, 
 
     let value = match parts[2].to_string().parse::<f64>().is_ok() {
         true => Value::new(parts[2].to_string(), DataType::Integer),
-        false => Value::new(parts[2].to_string(), DataType::String),
+        false => {
+            if string_is_attribute(parts[2].to_string())? {
+                Value::new(parts[2].to_string(), DataType::Attribute)
+            }
+            else{
+                Value::new(parts[2].to_string(), DataType::String)
+            }
+        }
     };
 
     let command = SingleCommand::new(attribute, operator, value);
 
     Ok(Command::SingleCommand(command))
+}
+
+fn string_is_attribute(string: String) -> Result<bool, Error> {
+
+    let split_by_dot = string.split(".");
+    let collection = split_by_dot.collect::<Vec<&str>>();
+
+    let is_attribute = collection.len() == 3;
+    
+    Ok(is_attribute)
 }
 
 #[cfg(test)]
@@ -283,6 +300,38 @@ mod private_tests {
         let command = Command::SingleCommand(simple_command);
 
         assert_eq!(terminal_expression_to_simple_command(expression)?, command);
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_terminal_expression_to_simple_with_attr_as_value() -> Result<(), Error> {
+        let expression = "movies.movie.revenue lt movies.movie.budget".to_string();
+
+        let simple_command = SingleCommand::new(
+            "movies.movie.revenue".to_string(),
+            Operator::LessThan,
+            Value::new("movies.movie.budget".to_string().to_string(), DataType::Attribute),
+        );
+
+        let command = Command::SingleCommand(simple_command);
+
+        assert_eq!(terminal_expression_to_simple_command(expression)?, command);
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_string_is_attribute() -> Result<(), Error> {
+
+        let normal_string = "Disney".into();
+        assert_eq!(string_is_attribute(normal_string)?,false);
+
+        let attribute_string = "movies.movie.title".into();
+        assert_eq!(string_is_attribute(attribute_string)?,true);
+
+        let string_with_dot = "www.google.com.br".into();
+        assert_eq!(string_is_attribute(string_with_dot)?,false);
 
         Ok(())
     }

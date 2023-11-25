@@ -1,5 +1,6 @@
 # syntax=docker/dockerfile:1
 
+
 ################################################################################
 # Create a stage for building the application.
 
@@ -25,9 +26,13 @@ EOF
 # Create a new stage for running the application.
 FROM debian:bullseye-slim AS final
 
-
 # Copy the executable from the "build" stage.
 COPY --from=build /bin/server /bin/
+
+
+FROM ubuntu:22.04
+RUN apt update
+RUN apt install -y pkg-config
 
 # Expose the port that the application listens on.
 EXPOSE 3000

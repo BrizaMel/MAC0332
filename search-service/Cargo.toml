@@ -20,3 +20,4 @@ strum_macros = "0.25"
 tokio = { version = "1", features = ["full"] }
 tokio-postgres = { version = "0.7.6" }
 async-trait = "0.1.74"
+mysql = "24.0.0"

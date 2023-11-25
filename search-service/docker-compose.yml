@@ -27,12 +27,13 @@ services:
     ports:
       - "3306:3306"
     environment:
-      MYSQL_ROOT_PASSWORD: search-service
-      MYSQL_USER: search-service
-      MYSQL_PASSWORD: search-service
-      MSQL_DB: search-service
+      MYSQL_ROOT_PASSWORD: searchservice
+      MYSQL_USER: searchservice
+      MYSQL_PASSWORD: searchservice
+      MSQL_DB: searchservice
     volumes: 
-      - mysqlvolume:/var/lib/
+      - mysqlvolume:/var/lib
+      - ../database/sample/mysql/ddl.sql:/docker-entrypoint-initdb.d/1.sql
     healthcheck:
       test: ["CMD", "mysqladmin" ,"ping", "-h", "localhost"]
       interval: 10s
@@ -50,11 +51,6 @@ services:
       DB_PORT: 5432
       ALLOWED_SCHEMAS: public,movies # Schemas the server can query (split by ',')
     entrypoint: [ "bash", "-c", "server run-http-server"]
-    depends_on:
-      postgresdb:
-        condition: service_healthy
-      mysqldb:
-        condition: service_healthy
 
 volumes:
   sbcbddb:

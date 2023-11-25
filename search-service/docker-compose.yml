@@ -34,6 +34,7 @@ services:
     volumes: 
       - mysqlvolume:/var/lib
       - ../database/sample/mysql/ddl.sql:/docker-entrypoint-initdb.d/1.sql
+      - ../database/sample/mysql/dml.sql:/docker-entrypoint-initdb.d/2.sql
     healthcheck:
       test: ["CMD", "mysqladmin" ,"ping", "-h", "localhost"]
       interval: 10s

@@ -1,9 +1,13 @@
-use anyhow::{Ok, Result};
-use mysql::{Pool,PooledConn,OptsBuilder};
+use anyhow::{Ok, Result, Error};
+use mysql::{Pool,PooledConn,OptsBuilder,from_row,params};
+use mysql::prelude::Queryable;
 use std::time::Duration;
 
 pub mod queries;
 pub mod tests;
+
+use crate::relational::entities::{Attribute,DbSchema,ForeignKey,Table,PrimaryKey};
+
 
 pub struct MySQLConfig {
     pub host: String,
@@ -66,7 +70,7 @@ impl MySQLStorage {
         	.tcp_connect_timeout(Some(Duration::new(10, 0)))
         	.read_timeout(Some(Duration::new(3, 0)));
 
-        let pool = Pool::new(mysql_opts).expect("ERROSSSS");
+        let pool = Pool::new(mysql_opts)?;
 
         let allowed_schemas = config.allowed_schemas;
 
@@ -84,4 +88,172 @@ impl MySQLStorage {
         Ok(client)
     }
 
+	pub async fn get_db_schema_info(&self) -> Result<DbSchema,Error> {
+        let allowed_schemas: &Vec<String> = &self.allowed_schemas;
+
+        let tables = self
+            .get_db_tables(&allowed_schemas)
+            .await
+            .expect("Error retireving Database Tables");
+        let foreign_keys = self
+            .get_db_foreign_keys(&allowed_schemas)
+            .await
+            .expect("Error retireving Database Foreign Keys");
+
+        let db_schema: DbSchema = DbSchema::new(tables, foreign_keys);
+        Ok(db_schema)
+    }
+
+	async fn get_db_tables(
+        &self,
+        allowed_schemas: &Vec<String>,
+    ) -> Result<Vec<Table>> {
+
+    	let mut client = self.get_client()?;
+
+        let mut table_vec: Vec<Table> = Vec::new();
+	
+	    let params = vec_to_mysql_list(&allowed_schemas)?;
+
+		let query_str : String = queries::GET_TABLES.replace(":allowed_schemas", params.as_str());
+
+		for tables_row in client.query_iter(query_str).unwrap(){
+        	let (table_schema, table_name) : (String, String) = from_row(tables_row.unwrap());
+
+            let attributes_vec: Vec<Attribute> = self
+                .get_table_attributes(&table_schema, &table_name)
+                .await
+                .expect("Error retrieving attributes");
+
+            let primary_keys_vec: Vec<PrimaryKey> = self
+                .get_table_primary_keys(&table_schema, &table_name)
+                .await
+                .expect("Error retrieving primary keys");
+
+            let table: Table =
+                Table::new(table_schema, table_name, attributes_vec, primary_keys_vec);
+            table_vec.push(table);
+        }
+
+        Ok(table_vec)
+    }
+
+    async fn get_table_attributes(
+        &self,
+        table_schema: &String,
+        table_name: &String,
+    ) -> Result<Vec<Attribute>, anyhow::Error> {
+
+    	let mut client = self.get_client()?;
+
+        let mut attributes_vec: Vec<Attribute> = Vec::new();
+
+        // For each table, search for its attributes
+		for attributes_row in client.exec_iter(queries::GET_ATTRIBUTES, 
+			params! { 
+				"table_schema" => table_schema,
+				"table_name" => table_name 
+			}
+		).unwrap()
+		{
+        	let (column_name, data_type) : (String, String) = from_row(attributes_row.unwrap());
+
+            let attribute: Attribute = Attribute::new(
+                column_name,
+                data_type,
+            );
+
+            attributes_vec.push(attribute);
+        }
+
+        Ok(attributes_vec)
+    }
+
+    async fn get_table_primary_keys(
+        &self,
+        table_schema: &String,
+        table_name: &String,
+    ) -> Result<Vec<PrimaryKey>, anyhow::Error> {
+    	
+    	let mut client = self.get_client()?;
+        
+        let mut primary_keys_vec: Vec<PrimaryKey> = Vec::new();
+
+        // For each table, search for its primary_keys
+		for primary_keys_row in client.exec_iter(queries::GET_PRIMARY_KEYS, 
+			params! { 
+				"table_schema" => table_schema,
+				"table_name" => table_name 
+			}
+		).unwrap()
+        {
+
+        	let column_name : String = from_row(primary_keys_row.unwrap());
+
+            let primary_key: PrimaryKey = PrimaryKey::new(
+                table_schema.to_string(),
+                table_name.to_string(),
+                column_name.to_string(),
+            );
+
+            primary_keys_vec.push(primary_key);
+        }
+
+        Ok(primary_keys_vec)
+    }
+
+    async fn get_db_foreign_keys(
+        &self,
+        allowed_schemas: &Vec<String>,
+    ) -> Result<Vec<ForeignKey>, anyhow::Error> {
+        
+
+    	let mut client = self.get_client()?;
+
+        let mut foreign_keys_vec: Vec<ForeignKey> = Vec::new();
+
+	    let params = vec_to_mysql_list(&allowed_schemas)?;
+
+		let query_str : String = queries::GET_FOREIGN_KEYS.replace(":allowed_schemas", params.as_str());
+
+        // Search for foreign keys
+        for foreign_keys_rows in client.query_iter(query_str).unwrap()
+        {
+
+        	let (table_schema,
+        		table_name,
+        		column_name,
+        		foreign_table_schema,
+        		foreign_table_name,
+        		foreign_column_name) : (String, String, String, String, String, String)
+        	= from_row(foreign_keys_rows.unwrap());
+
+            let foreign_key: ForeignKey = ForeignKey::new(
+                table_schema,
+        		table_name,
+        		column_name,
+        		foreign_table_schema,
+        		foreign_table_name,
+        		foreign_column_name
+            );
+
+            foreign_keys_vec.push(foreign_key);
+        }
+
+        Ok(foreign_keys_vec)
+    }
+
 }
+
+fn vec_to_mysql_list(v: &Vec<String>) -> Result<String> {
+	let mut params = "".to_string();
+    for (idx, item) in v.iter().enumerate() {
+        params.push_str("'");
+        params.push_str(item);
+        params.push_str("'");
+        if idx != v.len() - 1 {
+            params.push_str(", ");
+        }
+    }
+    Ok(params)
+} 

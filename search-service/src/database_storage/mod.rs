@@ -8,10 +8,13 @@ use crate::traits::DatabaseOperations;
 
 use crate::postgres::{PostgresStorage,PostgresConfig};
 
+use crate::mysql::{MySQLStorage,MySQLConfig};
+
 use crate::relational::entities::DbSchema;
 
 pub enum DatabaseStorage {
-	PostgresStorage(PostgresStorage)
+	PostgresStorage(PostgresStorage),
+	MySQLStorage(MySQLStorage)
 }
 
 #[async_trait]
@@ -22,7 +25,12 @@ impl DatabaseOperations for DatabaseStorage {
 				ps
 				.get_db_schema_info()
 				.await
-				.expect("Error retireving Database Schema Information")
+				.expect("Error retireving Database Schema Information (Postgres)"),
+			DatabaseStorage::MySQLStorage(ms) => 
+				ms
+				.get_db_schema_info()
+				.await
+				.expect("Error retireving Database Schema Information (MySQL)")				
 		};
 		Ok(db_schema)
 	}
@@ -39,6 +47,13 @@ impl DatabaseStorage {
 				)
 				.await
 				.expect("Error initializing psql_storage")),
+
+			"mysql" => DatabaseStorage::MySQLStorage(
+				MySQLStorage::new(
+					MySQLConfig::from_env()
+				)
+				.await
+				.expect("Error initializing mysql_storage")),
 
 			_ => panic!("Invalid DBMS in the environment")
 		};

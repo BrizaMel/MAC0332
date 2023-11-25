@@ -11,13 +11,14 @@ mod tests {
 
     async fn setup_storage() -> MySQLStorage {
 
-        let storage = MySQLStorage::new(MySQLConfig::new(
-            "public,movies".into(),
-            "localhost".into(),
-            3306,
-            "searchservice".into(),
-            "searchservice".into(),
-            "searchservice".into()
+        let storage = MySQLStorage::new(
+            MySQLConfig::new(
+                "public,movies".into(),
+                "localhost".into(),
+                3306,
+                "searchservice".into(),
+                "searchservice".into(),
+                "searchservice".into()
             )
         ).await.unwrap();
 

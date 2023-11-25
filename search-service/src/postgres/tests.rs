@@ -1,26 +1,23 @@
 #[cfg(test)]
 mod tests {
 
-    use std::env;
-
     use crate::postgres::{PostgresConfig, PostgresStorage};
 
     use anyhow::Error;
 
     use deadpool_postgres::Object;
 
-    fn setup_env() {
-        env::set_var("ALLOWED_SCHEMAS", "public,movies");
-        env::set_var("DB_HOST", "localhost");
-        env::set_var("DB_PORT", "54329");
-        env::set_var("DB_USER", "search-service");
-        env::set_var("DB_PASS", "search-service");
-        env::set_var("DB_NAME", "search-service");
-    }
-
     async fn setup_storage() -> PostgresStorage {
-        setup_env();
-        let storage = PostgresStorage::new(PostgresConfig::new()).await.unwrap();
+        let storage = PostgresStorage::new(
+            PostgresConfig::new(
+                "public,movies".into(),
+                "localhost".into(),
+                54329,
+                "search-service".into(),
+                "search-service".into(),
+                "search-service".into()
+            )
+        ).await.unwrap();
         storage
     }
 

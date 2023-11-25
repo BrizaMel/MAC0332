@@ -19,7 +19,22 @@ pub struct PostgresConfig {
 }
 
 impl PostgresConfig {
-    pub fn new() -> Self {
+    pub fn new(allowed_schemas_string: String, db_host : String, db_port: u16, postgres_user: String,postgres_pass: String, postgres_db: String) -> Self {
+        let allowed_schemas: Vec<String> = allowed_schemas_string
+            .split(",")
+            .map(|s| s.to_string())
+            .collect();        
+        Self {
+            host: db_host,
+            port: db_port,
+            user: postgres_user,
+            password: postgres_pass,
+            dbname: postgres_db,
+            allowed_schemas: allowed_schemas,
+        }
+    }
+
+    pub fn from_env() -> Self {
         let allowed_schemas_var =
             std::env::var("ALLOWED_SCHEMAS").unwrap_or_else(|_| "public".to_string());
         let allowed_schemas: Vec<String> = allowed_schemas_var

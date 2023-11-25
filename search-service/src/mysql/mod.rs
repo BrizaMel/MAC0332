@@ -29,6 +29,25 @@ impl MySQLConfig {
             allowed_schemas: allowed_schemas,
         }
     }
+    pub fn from_env() -> Self {
+        let allowed_schemas_var =
+            std::env::var("ALLOWED_SCHEMAS").unwrap_or_else(|_| "public".to_string());
+        let allowed_schemas: Vec<String> = allowed_schemas_var
+            .split(",")
+            .map(|s| s.to_string())
+            .collect();
+        Self {
+            host: std::env::var("DB_HOST").unwrap_or_else(|_| "localhost".to_string()),
+            port: std::env::var("DB_PORT")
+                .unwrap_or_else(|_| "3306".to_string())
+                .parse::<u16>()
+                .unwrap(),
+            user: std::env::var("DB_USER").unwrap_or_else(|_| "searchservice".to_string()),
+            password: std::env::var("DB_PASS").unwrap_or_else(|_| "searchservice".to_string()),
+            dbname: std::env::var("DB_NAME").unwrap_or_else(|_| "searchservice".to_string()),
+            allowed_schemas: allowed_schemas,
+        }    	
+    }
 }
 
 pub struct MySQLStorage {

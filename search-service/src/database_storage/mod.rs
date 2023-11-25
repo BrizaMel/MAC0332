@@ -35,7 +35,7 @@ impl DatabaseStorage {
 		let chosen_storage = match dbsm_to_connect.as_str() {
 			"postgres" => DatabaseStorage::PostgresStorage(
 				PostgresStorage::new(
-					PostgresConfig::new()
+					PostgresConfig::from_env()
 				)
 				.await
 				.expect("Error initializing psql_storage")),

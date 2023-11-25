@@ -311,7 +311,7 @@ mod private_tests {
         let simple_command = SingleCommand::new(
             "movies.movie.revenue".to_string(),
             Operator::LessThan,
-            Value::new("movies.movie.budget".to_string().to_string(), DataType::Attribute),
+            Value::new("movies.movie.budget".to_string(), DataType::Attribute),
         );
 
         let command = Command::SingleCommand(simple_command);
@@ -325,13 +325,13 @@ mod private_tests {
     fn test_string_is_attribute() -> Result<(), Error> {
 
         let normal_string = "Disney".into();
-        assert_eq!(string_is_attribute(normal_string)?,false);
+        assert_eq!(string_is_attribute(normal_string)?, false);
 
         let attribute_string = "movies.movie.title".into();
-        assert_eq!(string_is_attribute(attribute_string)?,true);
+        assert_eq!(string_is_attribute(attribute_string)?, true);
 
         let string_with_dot = "www.google.com.br".into();
-        assert_eq!(string_is_attribute(string_with_dot)?,false);
+        assert_eq!(string_is_attribute(string_with_dot)?, false);
 
         Ok(())
     }

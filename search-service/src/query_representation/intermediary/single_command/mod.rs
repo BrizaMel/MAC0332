@@ -5,7 +5,7 @@ pub struct SingleCommand {
     pub value: Value,
 }
 
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq, Debug, Clone)]
 pub struct Value {
     pub value: String,
     pub data_type: DataType,
@@ -21,10 +21,11 @@ pub enum Operator {
     NotEqualTo,
 }
 
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq, Debug, Clone)]
 pub enum DataType {
     Integer,
     String,
+    Attribute
 }
 
 impl SingleCommand {

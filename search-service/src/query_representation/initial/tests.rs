@@ -254,4 +254,24 @@ pub mod tests {
 
         Ok(())
     }
+
+    #[test]
+    fn test_initial_to_super_with_attribute_as_value() -> Result<(), Error> {
+        let initial = serde_json::json!({
+            "projection": "[]",
+              "filters": "movies.person.person_name eq movies.movie_cast.character_name"
+        });
+
+        let single_command = SingleCommand::new(
+            "movies.person.person_name".to_string(),
+            Operator::EqualTo,
+            Value::new("movies.movie_cast.character_name".to_string(), DataType::Attribute),
+        );
+
+        let command = Command::SingleCommand(single_command);
+
+        assert_eq!(initial_to_command(initial)?, command);
+
+        Ok(())
+    }
 }

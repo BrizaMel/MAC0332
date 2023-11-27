@@ -20,14 +20,14 @@ mod tests {
                 "searchservice".into(),
                 "searchservice".into()
             )
-        ).await.unwrap();
+        ).await.expect("Error initializing MySQLStorage");
 
         storage
     }
 
     async fn setup_client() -> PooledConn {
         let storage = setup_storage().await;
-        let client = storage.get_client().unwrap();
+        let client = storage.get_client().expect("Error getting MySQL client");
         client
     }
 

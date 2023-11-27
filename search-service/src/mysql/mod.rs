@@ -60,7 +60,7 @@ pub struct MySQLStorage {
 }
 
 impl MySQLStorage {
-    pub async fn new(config: MySQLConfig) -> Result<Self> {
+    pub async fn new(config: MySQLConfig) -> Result<Self,Error> {
         let mysql_opts = OptsBuilder::new()
         	.user(Some(config.user.to_owned()))
         	.pass(Some(config.password.to_owned()))
@@ -74,7 +74,7 @@ impl MySQLStorage {
 
         let allowed_schemas = config.allowed_schemas;
 
-        println!("Allowed Schemas: {:?}", allowed_schemas);
+        println!("Allowed Schemas (MySQL): {:?}", allowed_schemas);
 
         Ok(Self {
             pool,
@@ -82,7 +82,7 @@ impl MySQLStorage {
         })
     }
 
-    fn get_client(&self) -> Result<PooledConn> {
+    fn get_client(&self) -> Result<PooledConn,Error> {
         let client = self.pool.get_conn()?;
 
         Ok(client)
@@ -107,7 +107,7 @@ impl MySQLStorage {
 	async fn get_db_tables(
         &self,
         allowed_schemas: &Vec<String>,
-    ) -> Result<Vec<Table>> {
+    ) -> Result<Vec<Table>,Error> {
 
     	let mut client = self.get_client()?;
 
@@ -117,8 +117,8 @@ impl MySQLStorage {
 
 		let query_str : String = queries::GET_TABLES.replace(":allowed_schemas", params.as_str());
 
-		for tables_row in client.query_iter(query_str).unwrap(){
-        	let (table_schema, table_name) : (String, String) = from_row(tables_row.unwrap());
+		for tables_row in client.query_iter(query_str)?{
+        	let (table_schema, table_name) : (String, String) = from_row(tables_row?);
 
             let attributes_vec: Vec<Attribute> = self
                 .get_table_attributes(&table_schema, &table_name)
@@ -142,7 +142,7 @@ impl MySQLStorage {
         &self,
         table_schema: &String,
         table_name: &String,
-    ) -> Result<Vec<Attribute>, anyhow::Error> {
+    ) -> Result<Vec<Attribute>, Error> {
 
     	let mut client = self.get_client()?;
 
@@ -154,9 +154,9 @@ impl MySQLStorage {
 				"table_schema" => table_schema,
 				"table_name" => table_name 
 			}
-		).unwrap()
+		)?
 		{
-        	let (column_name, data_type) : (String, String) = from_row(attributes_row.unwrap());
+        	let (column_name, data_type) : (String, String) = from_row(attributes_row?);
 
             let attribute: Attribute = Attribute::new(
                 column_name,
@@ -173,7 +173,7 @@ impl MySQLStorage {
         &self,
         table_schema: &String,
         table_name: &String,
-    ) -> Result<Vec<PrimaryKey>, anyhow::Error> {
+    ) -> Result<Vec<PrimaryKey>, Error> {
     	
     	let mut client = self.get_client()?;
         
@@ -185,10 +185,10 @@ impl MySQLStorage {
 				"table_schema" => table_schema,
 				"table_name" => table_name 
 			}
-		).unwrap()
+		)?
         {
 
-        	let column_name : String = from_row(primary_keys_row.unwrap());
+        	let column_name : String = from_row(primary_keys_row?);
 
             let primary_key: PrimaryKey = PrimaryKey::new(
                 table_schema.to_string(),
@@ -205,7 +205,7 @@ impl MySQLStorage {
     async fn get_db_foreign_keys(
         &self,
         allowed_schemas: &Vec<String>,
-    ) -> Result<Vec<ForeignKey>, anyhow::Error> {
+    ) -> Result<Vec<ForeignKey>, Error> {
         
 
     	let mut client = self.get_client()?;
@@ -217,7 +217,7 @@ impl MySQLStorage {
 		let query_str : String = queries::GET_FOREIGN_KEYS.replace(":allowed_schemas", params.as_str());
 
         // Search for foreign keys
-        for foreign_keys_rows in client.query_iter(query_str).unwrap()
+        for foreign_keys_rows in client.query_iter(query_str)?
         {
 
         	let (table_schema,
@@ -226,7 +226,7 @@ impl MySQLStorage {
         		foreign_table_schema,
         		foreign_table_name,
         		foreign_column_name) : (String, String, String, String, String, String)
-        	= from_row(foreign_keys_rows.unwrap());
+        	= from_row(foreign_keys_rows?);
 
             let foreign_key: ForeignKey = ForeignKey::new(
                 table_schema,

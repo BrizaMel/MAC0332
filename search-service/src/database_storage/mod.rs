@@ -38,7 +38,7 @@ impl DatabaseOperations for DatabaseStorage {
 
 impl DatabaseStorage {
 	pub async fn new() -> Self {
-		let dbsm_to_connect = std::env::var("DBMS").unwrap_or_else(|_| panic!("DBMS variable missing in the environment"));
+		let dbsm_to_connect = std::env::var("DBMS").expect("DBMS variable missing in the environment");
 
 		let chosen_storage = match dbsm_to_connect.as_str() {
 			"postgres" => DatabaseStorage::PostgresStorage(

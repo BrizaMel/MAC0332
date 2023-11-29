@@ -1,14 +1,14 @@
-use axum::{extract::State, routing::get, response::IntoResponse, Router, Json};
+use axum::{routing::get, Router};
 use std::net::SocketAddr;
 
 use std::sync::Arc;
 
-use crate::traits::DatabaseOperations;
-
 use crate::database_storage::DatabaseStorage;
 
+use crate::api::properties::get_filter_properties;
+
 pub struct AppState {
-    db: DatabaseStorage,
+    pub db: DatabaseStorage,
 }
 
 pub async fn run_http_server() -> anyhow::Result<()> {
@@ -30,20 +30,6 @@ pub async fn run_http_server() -> anyhow::Result<()> {
         .unwrap();
 
     Ok(())
-}
-
-async fn get_filter_properties(State(app_state): State<Arc<AppState>>) -> impl IntoResponse {
-
-    let db_storage = &app_state.db;
-
-    let db_schema_info = db_storage.get_db_schema_info().await.expect("Error retireving Database Schema Information");
-    
-    let json_response = serde_json::json!({
-        "status": "success",
-        "schema_info": serde_json::json!(db_schema_info),
-    });
-
-    Json(json_response)
 }
 
 fn search() -> String {

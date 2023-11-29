@@ -6,8 +6,6 @@ pub mod queries;
 pub mod tests;
 
 use crate::relational::entities::{Attribute, DbSchema, ForeignKey, PrimaryKey, Table};
-use crate::relational::table_search::entities::TableSearchInfo;
-use crate::relational::table_search::TableSearch;
 
 pub struct PostgresConfig {
     pub host: String,
@@ -112,14 +110,6 @@ impl PostgresStorage {
             .get_db_foreign_keys(&this_client, &allowed_schemas)
             .await
             .expect("Error retireving Database Foreign Keys");
-
-        let tables_search_info: Vec<TableSearchInfo> = tables
-            .clone()
-            .into_iter()
-            .map(TableSearchInfo::from)
-            .collect();
-
-        let _please_end_me = TableSearch::new(tables_search_info, foreign_keys.clone());
 
         let db_schema: DbSchema = DbSchema::new(tables, foreign_keys);
         Ok(db_schema)

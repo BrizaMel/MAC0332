@@ -1,10 +1,9 @@
-use anyhow::{Ok, Result};
+use anyhow::{Ok, Result, Error};
 use deadpool_postgres::{Manager, ManagerConfig, Object, Pool, RecyclingMethod};
 use tokio_postgres::NoTls;
 
 pub mod queries;
 pub mod tests;
-pub mod visitor;
 
 use crate::relational::entities::{Attribute, DbSchema, ForeignKey, PrimaryKey, Table};
 use crate::relational::table_search::entities::TableSearchInfo;
@@ -20,7 +19,22 @@ pub struct PostgresConfig {
 }
 
 impl PostgresConfig {
-    pub fn new() -> Self {
+    pub fn new(allowed_schemas_string: String, db_host : String, db_port: u16, postgres_user: String,postgres_pass: String, postgres_db: String) -> Self {
+        let allowed_schemas: Vec<String> = allowed_schemas_string
+            .split(",")
+            .map(|s| s.to_string())
+            .collect();        
+        Self {
+            host: db_host,
+            port: db_port,
+            user: postgres_user,
+            password: postgres_pass,
+            dbname: postgres_db,
+            allowed_schemas: allowed_schemas,
+        }
+    }
+
+    pub fn from_env() -> Self {
         let allowed_schemas_var =
             std::env::var("ALLOWED_SCHEMAS").unwrap_or_else(|_| "public".to_string());
         let allowed_schemas: Vec<String> = allowed_schemas_var
@@ -77,13 +91,13 @@ impl PostgresStorage {
         })
     }
 
-    pub async fn get_client(&self) -> Result<Object> {
+    async fn get_client(&self) -> Result<Object> {
         let client = self.pool.get().await?;
 
         Ok(client)
     }
 
-    pub async fn get_db_schema_info(&self) -> Result<DbSchema> {
+    pub async fn get_db_schema_info(&self) -> Result<DbSchema,Error> {
         let allowed_schemas: &Vec<String> = &self.allowed_schemas;
 
         let this_client = self
@@ -225,7 +239,4 @@ impl PostgresStorage {
         Ok(foreign_keys_vec)
     }
 
-    pub async fn return_result(&self) -> &str {
-        return "Rebolarion";
-    }
 }

@@ -12,6 +12,8 @@ use crate::mysql::{MySQLStorage,MySQLConfig};
 
 use crate::relational::entities::DbSchema;
 
+use crate::query_representation::intermediary::single_command::DataType;
+
 pub enum DatabaseStorage {
 	PostgresStorage(PostgresStorage),
 	MySQLStorage(MySQLStorage)
@@ -34,6 +36,21 @@ impl DatabaseOperations for DatabaseStorage {
 		};
 		Ok(db_schema)
 	}
+
+    fn translate_native_type(&self, native_type: &str) -> Result<DataType,Error> {
+
+		let data_type = match &self {
+			DatabaseStorage::PostgresStorage(ps) => 
+				ps
+				.translate_native_type(native_type)
+				.expect("Error translating native Postgres type"),
+			DatabaseStorage::MySQLStorage(ms) => 
+				ms
+				.translate_native_type(native_type)
+				.expect("Error translating native MySQL type")				
+		};
+        Ok(data_type)
+    }
 }
 
 impl DatabaseStorage {

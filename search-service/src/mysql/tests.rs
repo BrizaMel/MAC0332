@@ -7,6 +7,8 @@ mod tests {
 
     use crate::mysql::{MySQLConfig, MySQLStorage};
 
+    use crate::query_representation::intermediary::single_command::DataType;
+
     use anyhow::Error;
 
     async fn setup_storage() -> MySQLStorage {
@@ -39,6 +41,28 @@ mod tests {
 
         assert_eq!(result, expected_result);
 
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn test_translate_native_type() -> Result<(), Error> {
+
+        let storage = setup_storage().await;
+
+        let mut native_type = "int".into();
+        assert_eq!(storage.translate_native_type(native_type)?,DataType::Integer);
+
+        native_type = "varchar".into();
+        assert_eq!(storage.translate_native_type(native_type)?,DataType::String);
+
+        native_type = "decimal".into();
+        assert_eq!(storage.translate_native_type(native_type)?,DataType::Float);
+
+        native_type = "bigint".into();
+        assert_eq!(storage.translate_native_type(native_type)?,DataType::Integer);
+
+        native_type = "date".into();
+        assert_eq!(storage.translate_native_type(native_type)?,DataType::Date);
         Ok(())
     }
 

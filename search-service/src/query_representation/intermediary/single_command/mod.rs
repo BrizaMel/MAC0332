@@ -31,6 +31,8 @@ pub enum Operator {
 pub enum DataType {
     Integer,
     String,
+    Float,
+    Date,
     Attribute
 }
 

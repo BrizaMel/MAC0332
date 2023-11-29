@@ -13,7 +13,7 @@ use crate::controller::http::AppState;
 
 use crate::traits::DatabaseOperations;
 
-use crate::query_representation::intermediary::single_command::{Operator};
+use crate::query_representation::intermediary::single_command::{DataType,Operator};
 
 use crate::relational::entities::DbSchema;
 
@@ -27,7 +27,7 @@ pub struct Properties {
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct AttributeInfo {
     name: String,
-    data_type: String,
+    data_type: DataType,
     subset_id: u8
 }
 
@@ -51,7 +51,7 @@ pub async fn get_filter_properties(State(app_state): State<Arc<AppState>>) -> im
 impl AttributeInfo {
     pub fn new(
         name: String,
-        data_type: String,
+        data_type: DataType,
         subset_id: u8,
     ) -> Self {
         Self {
@@ -65,7 +65,6 @@ impl AttributeInfo {
 impl Properties {
     pub fn from_schema_info(schema_info: DbSchema) -> Self {
 
-        // 'operators' field creation
         let operators_vec = Operator::iter().collect::<Vec<_>>();
         let operators = operators_vec.iter().map(|o| o.clone().to_string()).collect();
 
@@ -80,10 +79,11 @@ impl Properties {
                 full_attr_name.push_str(".");  
                 full_attr_name.push_str(&attribute.name);
 
-                let data_type = attribute.data_type;
+                let data_type = DataType::String;
+                // let data_type = attribute.data_type;
 
                 let subset_id = 0;
-                println!("{:?}",data_type.to_owned());
+                println!("{:?}",attribute.data_type);
                 
                 let attribute_info = AttributeInfo::new(full_attr_name,data_type,subset_id);
                 attributes.push(attribute_info);
@@ -122,7 +122,7 @@ mod tests {
                     "search-service".into(),
                     "search-service".into()
                 )
-            ).await.expect("SAFALFJLKAFJKL")
+            ).await?
         );
         let app_state = Arc::new(AppState { db: storage });
         let db_storage = &app_state.db;

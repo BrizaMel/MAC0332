@@ -7,6 +7,8 @@ mod tests {
 
     use deadpool_postgres::Object;
 
+    use crate::query_representation::intermediary::single_command::DataType;
+
     async fn setup_storage() -> PostgresStorage {
         let storage = PostgresStorage::new(
             PostgresConfig::new(
@@ -36,6 +38,28 @@ mod tests {
 
         assert_eq!(value, expected_result);
 
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn test_translate_native_type() -> Result<(), Error> {
+
+        let storage = setup_storage().await;
+
+        let mut native_type = "integer".into();
+        assert_eq!(storage.translate_native_type(native_type)?,DataType::Integer);
+
+        native_type = "character varying".into();
+        assert_eq!(storage.translate_native_type(native_type)?,DataType::String);
+
+        native_type = "numeric".into();
+        assert_eq!(storage.translate_native_type(native_type)?,DataType::Float);
+
+        native_type = "bigint".into();
+        assert_eq!(storage.translate_native_type(native_type)?,DataType::Integer);
+
+        native_type = "date".into();
+        assert_eq!(storage.translate_native_type(native_type)?,DataType::Date);
         Ok(())
     }
 

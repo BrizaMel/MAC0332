@@ -8,6 +8,7 @@ pub mod tests;
 
 use crate::relational::entities::{Attribute,DbSchema,ForeignKey,Table,PrimaryKey};
 
+use crate::query_representation::intermediary::single_command::DataType;
 
 pub struct MySQLConfig {
     pub host: String,
@@ -86,6 +87,30 @@ impl MySQLStorage {
         let client = self.pool.get_conn()?;
 
         Ok(client)
+    }
+
+    pub fn translate_native_type(&self, mysql_type: &str) -> Result<DataType,Error> {
+
+        let data_type;
+
+        match mysql_type {
+            "int" | "bigint" => {
+                data_type = DataType::Integer;
+            },
+            "varchar" => {
+                data_type = DataType::String;
+            },
+            "decimal" => {
+                data_type = DataType::Float;
+            },
+            "date" => {
+                data_type = DataType::Date;
+            }
+            _ => panic!("Unknown MySQL native type: {}",mysql_type)
+        };
+
+        Ok(data_type)
+
     }
 
 	pub async fn get_db_schema_info(&self) -> Result<DbSchema,Error> {

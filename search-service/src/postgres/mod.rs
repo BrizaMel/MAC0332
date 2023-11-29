@@ -7,6 +7,8 @@ pub mod tests;
 
 use crate::relational::entities::{Attribute, DbSchema, ForeignKey, PrimaryKey, Table};
 
+use crate::query_representation::intermediary::single_command::DataType;
+
 pub struct PostgresConfig {
     pub host: String,
     pub port: u16,
@@ -93,6 +95,29 @@ impl PostgresStorage {
         let client = self.pool.get().await?;
 
         Ok(client)
+    }
+
+    pub fn translate_native_type(&self, postgres_type: &str) -> Result<DataType,Error> {
+
+        let data_type;
+
+        match postgres_type {
+            "integer" | "bigint" => {
+                data_type = DataType::Integer;
+            },
+            "character varying" => {
+                data_type = DataType::String;
+            },
+            "numeric" => {
+                data_type = DataType::Float;
+            },
+            "date" => {
+                data_type = DataType::Date;
+            },
+            _ => panic!("Unknown Postgres native type: {}",postgres_type)
+        };
+
+        Ok(data_type)
     }
 
     pub async fn get_db_schema_info(&self) -> Result<DbSchema,Error> {

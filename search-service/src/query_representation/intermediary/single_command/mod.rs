@@ -27,7 +27,9 @@ pub enum Operator {
     NotEqualTo,
 }
 
-#[derive(Serialize, Deserialize, PartialEq, Debug, Clone)]
+#[derive(Serialize, Deserialize, PartialEq,
+    Debug, Clone, EnumIter, Display)
+]
 pub enum DataType {
     Integer,
     String,

@@ -17,6 +17,8 @@ use crate::query_representation::intermediary::single_command::{DataType,Operato
 
 use crate::relational::entities::DbSchema;
 
+use crate::database_storage::DatabaseStorage;
+
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct Properties {
     attributes: Vec<AttributeInfo>,
@@ -37,7 +39,7 @@ pub async fn get_filter_properties(State(app_state): State<Arc<AppState>>) -> im
 
     let db_schema_info = db_storage.get_db_schema_info().await.expect("Error retireving Database Schema Information");
     
-    let properties = Properties::from_schema_info(db_schema_info);
+    let properties = Properties::from_schema_info(db_schema_info, db_storage);
 
     let json_response = serde_json::json!({
         "status": "success",
@@ -63,7 +65,7 @@ impl AttributeInfo {
 }
 
 impl Properties {
-    pub fn from_schema_info(schema_info: DbSchema) -> Self {
+    pub fn from_schema_info(schema_info: DbSchema, db_storage: &DatabaseStorage) -> Self {
 
         let operators_vec = Operator::iter().collect::<Vec<_>>();
         let operators = operators_vec.iter().map(|o| o.clone().to_string()).collect();
@@ -79,11 +81,11 @@ impl Properties {
                 full_attr_name.push_str(".");  
                 full_attr_name.push_str(&attribute.name);
 
-                let data_type = DataType::String;
-                // let data_type = attribute.data_type;
+                let data_type = db_storage
+                    .translate_native_type(&attribute.data_type)
+                    .expect(&format!("Error translating data type: {}",attribute.data_type));
 
                 let subset_id = 0;
-                println!("{:?}",attribute.data_type);
                 
                 let attribute_info = AttributeInfo::new(full_attr_name,data_type,subset_id);
                 attributes.push(attribute_info);
@@ -110,9 +112,13 @@ mod tests {
    
     use crate::postgres::{PostgresConfig,PostgresStorage};
 
-    async fn aux_get_db_schema() -> Result<DbSchema,Error> {
+    async fn aux_get_db_schema(db_storage: &DatabaseStorage) -> Result<DbSchema,Error> {
+        let db_schema_info = db_storage.get_db_schema_info().await?;
+        Ok(db_schema_info)
+    }
 
-        let storage = DatabaseStorage::PostgresStorage(
+    async fn aux_get_storage() -> Result< DatabaseStorage, Error> {
+         let storage = DatabaseStorage::PostgresStorage(
             PostgresStorage::new(
                 PostgresConfig::new(
                     "public,movies".into(),
@@ -124,19 +130,17 @@ mod tests {
                 )
             ).await?
         );
-        let app_state = Arc::new(AppState { db: storage });
-        let db_storage = &app_state.db;
-
-        let db_schema_info = db_storage.get_db_schema_info().await?;
-        Ok(db_schema_info)
+        Ok(storage)     
     }
 
     #[tokio::test]
     async fn test_operators_creation() -> Result<(), Error> {
 
-        let db_schema_info = aux_get_db_schema().await?;
+        let db_storage = aux_get_storage().await?;
+
+        let db_schema_info = aux_get_db_schema(&db_storage).await?;
         
-        let properties = Properties::from_schema_info(db_schema_info);
+        let properties = Properties::from_schema_info(db_schema_info, &db_storage);
 
         assert_eq!(properties.operators,
             vec![
@@ -148,6 +152,25 @@ mod tests {
                 "NotEqualTo".to_string()
             ]
         );
+
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn test_attributes_types_correctness() -> Result<(), Error> {
+
+        let db_storage = aux_get_storage().await?;
+
+        let db_schema_info = aux_get_db_schema(&db_storage).await?;
+        
+        let properties = Properties::from_schema_info(db_schema_info, &db_storage);
+
+        let data_type_vec = DataType::iter().collect::<Vec<_>>();
+        let possible_data_types : Vec<String> = data_type_vec.iter().map(|o| o.clone().to_string()).collect();
+
+        for attribute in properties.attributes {
+            assert_eq!(possible_data_types.contains(&attribute.data_type.to_string()),true);
+        }
 
         Ok(())
     }

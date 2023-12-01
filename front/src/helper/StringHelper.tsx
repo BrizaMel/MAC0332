@@ -10,6 +10,9 @@ function convertReadableStringToPath(str: string): string {
 export function generateStringFromQueryArray(
   query: QueryModelExport[]
 ): string {
+  // TO-DO
+  // const isNumber = query[0].selectedValue.toString().match("")
+
   var base = "(";
   query.forEach((q) => {
     base += `${convertReadableStringToPath(q.selectedAttribute)} ${

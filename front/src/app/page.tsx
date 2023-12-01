@@ -53,6 +53,7 @@ export default function Home() {
 
   return (
     <main>
+      <h1>SBCBD --------</h1>
       <h1>Campos a serem visualizados</h1>
       <MultipleSelect
         values={schemaInfo?.attributes}

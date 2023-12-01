@@ -4,7 +4,6 @@ import Autocomplete from "@mui/material/Autocomplete";
 export default function MultipleSelect({ values, handleProjection }: any) {
   return (
     <div>
-      <h2>{}</h2>
       {values != undefined && (
         <Autocomplete
           multiple

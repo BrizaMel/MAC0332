@@ -52,95 +52,100 @@ export default function SelectComponent({
   }
 
   return (
-    <div className="select-component">
-      <h3>Query</h3> <br />
-      <div style={{ display: "flex", alignItems: "center" }}>
-        <Autocomplete
-          className="select-attr"
-          options={schemaInfo.attributes.map((attr) => attr.name)}
-          onChange={(event: any, newValue: string | null) => {
-            handleSelectedAttribute(newValue ?? "");
-          }}
-          popupIcon={""}
-          clearIcon={""}
-          renderInput={(params) => (
-            <TextField {...params} label={"Procure um atributo"} />
-          )}
-          renderOption={(props, option) => {
-            return (
-              <li {...props} key={option}>
-                {option}
-              </li>
-            );
-          }}
-        />
-        <select
-          className="logical-select"
-          onChange={(e) => handleSelectedOperator(e.target.value)}
-        >
-          <option></option>
-          {schemaInfo.operators.map((op) => (
-            <option key={op} value={op}>
-              {op}
-            </option>
-          ))}
-        </select>
-        <Autocomplete
-          freeSolo
-          className="select-attr"
-          popupIcon={""}
-          clearIcon={""}
-          options={schemaInfo.attributes.map((attr) => attr.name)}
-          onInputChange={(event: any, newValue: string | null) => {
-            handleSelectedInput(newValue ?? "");
-          }}
-          renderInput={(params) => (
-            <TextField {...params} label="Digite um valor ou campo" />
-          )}
-          renderOption={(props, option) => {
-            return (
-              <li {...props} key={option}>
-                {option}
-              </li>
-            );
-          }}
-        />
-        <button onClick={(e) => handleDelete(query)}>delete</button>
-      </div>
-      {subqueries && subqueries.length > 0 && (
-        <select
-          onChange={(e) => handleSelectedLogicalSubquerie(e.target.value)}
-          className="logical-select"
-          style={{ marginLeft: 30, marginTop: 40 }}
-        >
-          <option value="empty"></option>
-          {schemaInfo.logical_operators.map((op) => (
-            <option key={op} value={op}>
-              {op}
-            </option>
-          ))}
-        </select>
-      )}
-      {subqueries?.map((subquery, index) => (
-        <div style={{ marginLeft: 20 }} key={subquery.id}>
-          <SelectComponent
-            key={subquery.id}
-            handleDelete={handleDeleteFromChild}
-            queryParam={subquery}
-            schemaInfoParam={schemaInfo}
-            isLast={index == subqueries.length - 1}
+    <div>
+      <div className="select-component">
+        <h3>Query</h3> <br />
+        <div style={{ display: "flex", alignItems: "center" }}>
+          <Autocomplete
+            className="select-attr"
+            options={schemaInfo.attributes.map((attr) => attr.name)}
+            onChange={(event: any, newValue: string | null) => {
+              handleSelectedAttribute(newValue ?? "");
+            }}
+            popupIcon={""}
+            clearIcon={""}
+            renderInput={(params) => (
+              <TextField {...params} label={"Procure um atributo"} />
+            )}
+            renderOption={(props, option) => {
+              return (
+                <li {...props} key={option}>
+                  {option}
+                </li>
+              );
+            }}
           />
+          <select
+            className="logical-select"
+            onChange={(e) => handleSelectedOperator(e.target.value)}
+          >
+            <option></option>
+            {schemaInfo.operators.map((op) => (
+              <option key={op} value={op}>
+                {op}
+              </option>
+            ))}
+          </select>
+
+          <Autocomplete
+            freeSolo
+            className="select-attr"
+            popupIcon={""}
+            clearIcon={""}
+            options={schemaInfo.attributes.map((attr) => attr.name)}
+            onInputChange={(event: any, newValue: string | null) => {
+              handleSelectedInput(newValue ?? "");
+            }}
+            renderInput={(params) => (
+              <TextField {...params} label="Digite um valor ou campo" />
+            )}
+            renderOption={(props, option) => {
+              return (
+                <li {...props} key={option}>
+                  {option}
+                </li>
+              );
+            }}
+          />
+
+          <button onClick={(e) => handleDelete(query)}>delete</button>
         </div>
-      ))}
-      <button onClick={addSubqueries}>
-        add {subqueries && subqueries.length > 0 ? "to" : ""} group
-      </button>
-      <br />
+        {subqueries && subqueries.length > 0 && (
+          <select
+            onChange={(e) => handleSelectedLogicalSubquerie(e.target.value)}
+            className="logical-select"
+            style={{ marginLeft: 30, marginTop: 40 }}
+          >
+            <option value="empty"></option>
+            {schemaInfo.logical_operators.map((op) => (
+              <option key={op} value={op}>
+                {op}
+              </option>
+            ))}
+          </select>
+        )}
+        {subqueries?.map((subquery, index) => (
+          <div style={{ marginLeft: 20 }} key={subquery.id}>
+            <SelectComponent
+              key={subquery.id}
+              handleDelete={handleDeleteFromChild}
+              queryParam={subquery}
+              schemaInfoParam={schemaInfo}
+              isLast={index == subqueries.length - 1}
+            />
+          </div>
+        ))}
+        <button onClick={addSubqueries}>
+          add {subqueries && subqueries.length > 0 ? "to" : ""} group
+        </button>
+        <br />
+      </div>
+
       {!isLast && (
         <select
-          onChange={(e) => handleSelectedLogical(e.target.value)}
           className="logical-select"
           style={{ marginTop: 40 }}
+          onChange={(e) => handleSelectedLogical(e.target.value)}
         >
           <option value="empty"></option>
           {schemaInfo.logical_operators.map((op) => (

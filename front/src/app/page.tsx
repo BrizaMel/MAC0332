@@ -3,11 +3,12 @@
 import { useEffect, useState } from "react";
 import SelectComponent from "./components/SelectComponent";
 import updateUUID from "@/helper/UUIDHandler";
-import { validateQueries } from "@/helper/QuerySaver";
-import getSelectedAttributesFromQueries from "@/helper/QuerySaver";
+import { validateQueries } from "@/helper/QueryValidator";
+import getSelectedAttributesFromQueries from "@/helper/QueryValidator";
 import { download } from "@/helper/Downloader";
 import requestInfo from "@/service/Client";
 import MultipleSelect from "./components/MultipleSelects";
+import { generateStringFromQueryArray } from "@/helper/StringHelper";
 
 export default function Home() {
   const [schemaInfo, setSchemaInfo] = useState<SchemaInfo>();
@@ -38,13 +39,16 @@ export default function Home() {
       return;
     }
     const queriesToSave = getSelectedAttributesFromQueries(queries);
+    const querieString = generateStringFromQueryArray(queriesToSave);
     const toSave = {
       projection: projection,
-      queries: queriesToSave,
+      filters: querieString,
     } as RequestModel;
 
     const dict = JSON.stringify(toSave);
-    download(dict, "query.json");
+    // download(dict, "query.json");
+    console.log(toSave);
+    console.log(queriesToSave);
   }
 
   return (
@@ -52,7 +56,7 @@ export default function Home() {
       <h1>Campos a serem visualizados</h1>
       <MultipleSelect
         values={schemaInfo?.attributes}
-        handleUpdate={setProjection}
+        handleProjection={setProjection}
       />
 
       <h1>Filtros</h1>

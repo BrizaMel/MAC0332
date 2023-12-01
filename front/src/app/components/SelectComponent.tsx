@@ -47,6 +47,10 @@ export default function SelectComponent({
     query.selectedLogical = value;
   }
 
+  function handleSelectedLogicalSubquerie(value: string) {
+    query.selectedLogicalSubquerie = value;
+  }
+
   return (
     <div className="select-component">
       <h3>Query</h3> <br />
@@ -87,7 +91,7 @@ export default function SelectComponent({
           popupIcon={""}
           clearIcon={""}
           options={schemaInfo.attributes.map((attr) => attr.name)}
-          onChange={(event: any, newValue: string | null) => {
+          onInputChange={(event: any, newValue: string | null) => {
             handleSelectedInput(newValue ?? "");
           }}
           renderInput={(params) => (
@@ -102,18 +106,21 @@ export default function SelectComponent({
           }}
         />
         <button onClick={(e) => handleDelete(query)}>delete</button>
-        {(!isLast || (subqueries && subqueries.length > 0)) && (
-          <select
-            onChange={(e) => handleSelectedLogical(e.target.value)}
-            className="logical-select"
-          >
-            <option value="empty"></option>
-            <option value="or">Or</option>
-            <option value="and">And</option>
-            <option value="in">In</option>
-          </select>
-        )}
       </div>
+      {subqueries && subqueries.length > 0 && (
+        <select
+          onChange={(e) => handleSelectedLogicalSubquerie(e.target.value)}
+          className="logical-select"
+          style={{ marginLeft: 30, marginTop: 40 }}
+        >
+          <option value="empty"></option>
+          {schemaInfo.logical_operators.map((op) => (
+            <option key={op} value={op}>
+              {op}
+            </option>
+          ))}
+        </select>
+      )}
       {subqueries?.map((subquery, index) => (
         <div style={{ marginLeft: 20 }} key={subquery.id}>
           <SelectComponent
@@ -128,6 +135,21 @@ export default function SelectComponent({
       <button onClick={addSubqueries}>
         add {subqueries && subqueries.length > 0 ? "to" : ""} group
       </button>
+      <br />
+      {!isLast && (
+        <select
+          onChange={(e) => handleSelectedLogical(e.target.value)}
+          className="logical-select"
+          style={{ marginTop: 40 }}
+        >
+          <option value="empty"></option>
+          {schemaInfo.logical_operators.map((op) => (
+            <option key={op} value={op}>
+              {op}
+            </option>
+          ))}
+        </select>
+      )}
     </div>
   );
 }

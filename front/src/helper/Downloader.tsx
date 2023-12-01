@@ -1,15 +1,15 @@
 export function download(dictstring: string, filename: string) {
-  const arrdictstring = [dictstring];
-  var blobFile = new Blob(arrdictstring, {
+  const dict = [dictstring];
+  var blobFile = new Blob(dict, {
     type: "application/json;charset=utf-8",
   });
 
   var url = window.URL || window.webkitURL;
   const link = url.createObjectURL(blobFile);
-  var a = document.createElement("a");
-  a.download = `${filename}.json`;
-  a.href = link;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
+  var file = document.createElement("a");
+  file.download = `${filename}.json`;
+  file.href = link;
+  document.body.appendChild(file);
+  file.click();
+  document.body.removeChild(file);
 }

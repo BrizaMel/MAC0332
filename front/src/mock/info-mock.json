@@ -18,6 +18,7 @@
       }
     ],
     "subsets": [[0, 1], [2]],
-    "operators": ["equal to", "greater than", "in"]
+    "operators": ["equal to", "greater than", "in"],
+    "logical_operators": ["and", "or"]
   }
 }

@@ -1,15 +1,21 @@
 export default function getSelectedAttributesFromQueries(
   queries: QueryModel[]
 ): QueryModelExport[] {
-  return queries.map((q) => getSelectedAttributesFromQuery(q));
+  return queries.map((q, index) =>
+    getSelectedAttributesFromQuery(q, index == queries.length - 1)
+  );
 }
 
-function getSelectedAttributesFromQuery(query: QueryModel): QueryModelExport {
+function getSelectedAttributesFromQuery(
+  query: QueryModel,
+  isLast: boolean
+): QueryModelExport {
   return {
     selectedAttribute: query.selectedAttribute!,
     selectedOperator: query.selectedOperator!,
     selectedValue: query.selectedInput!,
-    selectedLogical: query.selectedLogical!,
+    selectedLogical: isLast ? "" : query.selectedLogical!,
+    selectedLogicalSubquerie: query.selectedLogicalSubquerie ?? "",
     subqueries:
       query.subQueries && query.subQueries.length > 0
         ? getSelectedAttributesFromQueries(query.subQueries)
@@ -33,7 +39,12 @@ function validateQuery(query: QueryModel): boolean {
   if (query.selectedOperator == undefined || query.selectedOperator == "")
     return false;
 
-  if (query.selectedLogical == undefined) return false;
+  if (
+    query.subQueries != undefined &&
+    query.subQueries.length > 0 &&
+    query.selectedLogicalSubquerie == undefined
+  )
+    return false;
 
   if (
     query.subQueries != undefined &&

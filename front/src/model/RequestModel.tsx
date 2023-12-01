@@ -1,4 +1,4 @@
 type RequestModel = {
   projection: string[];
-  queries: QueryModelExport[];
+  filters: string;
 };

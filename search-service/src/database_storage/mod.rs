@@ -2,6 +2,8 @@ use anyhow::Error;
 
 use async_trait::async_trait;
 
+use strum_macros::Display;
+
 pub mod visitor;
 
 use crate::traits::DatabaseOperations;
@@ -14,6 +16,7 @@ use crate::relational::entities::DbSchema;
 
 use crate::query_representation::intermediary::single_command::DataType;
 
+#[derive(Display)]
 pub enum DatabaseStorage {
 	PostgresStorage(PostgresStorage),
 	MySQLStorage(MySQLStorage)

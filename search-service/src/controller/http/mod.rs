@@ -6,6 +6,7 @@ use std::sync::Arc;
 use crate::database_storage::DatabaseStorage;
 
 use crate::api::properties::get_filter_properties;
+use crate::api::search::search;
 
 pub struct AppState {
     pub db: DatabaseStorage,
@@ -30,8 +31,4 @@ pub async fn run_http_server() -> anyhow::Result<()> {
         .unwrap();
 
     Ok(())
-}
-
-fn search() -> String {
-    "search handler".to_string()
 }

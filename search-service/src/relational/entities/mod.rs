@@ -36,7 +36,7 @@ pub struct PrimaryKey {
 #[derive(Serialize, Deserialize)]
 pub struct DbSchema {
     pub tables: Vec<Table>,
-    pub foreing_keys: Vec<ForeignKey>,
+    pub foreign_keys: Vec<ForeignKey>,
 }
 
 impl Attribute {
@@ -94,10 +94,10 @@ impl PrimaryKey {
 }
 
 impl DbSchema {
-    pub fn new(tables: Vec<Table>, foreing_keys: Vec<ForeignKey>) -> Self {
+    pub fn new(tables: Vec<Table>, foreign_keys: Vec<ForeignKey>) -> Self {
         Self {
             tables,
-            foreing_keys,
+            foreign_keys,
         }
     }
 }

@@ -1,5 +1,3 @@
-use crate::relational::entities::ForeignKey;
-use crate::relational::table_search::entities::TableSearchInfo;
 use crate::relational::table_search::TableSearch;
 use crate::traits::Visitor;
 
@@ -16,10 +14,8 @@ pub struct DatabaseVisitor {
 }
 
 impl DatabaseVisitor {
-    pub fn new(tables: Vec<TableSearchInfo>, foreign_keys: Vec<ForeignKey>) -> Self {
-        Self {
-            table_search: TableSearch::new(tables, foreign_keys),
-        }
+    pub fn new(table_search: TableSearch) -> Self {
+        Self { table_search }
     }
 }
 
@@ -45,6 +41,7 @@ mod tests {
 
     use crate::relational::entities::ForeignKey;
     use crate::relational::table_search::entities::TableSearchInfo;
+    use crate::relational::table_search::TableSearch;
     use crate::traits::Component;
 
     use anyhow::Error;
@@ -61,7 +58,8 @@ mod tests {
         )];
         let fks: Vec<ForeignKey> = vec![];
 
-        let postgres_visitor = DatabaseVisitor::new(tables, fks);
+        let table_search = TableSearch::new(tables, fks);
+        let postgres_visitor = DatabaseVisitor::new(table_search);
 
         let sc_return = Command::SingleCommand(simple_command).accept(
             vec![

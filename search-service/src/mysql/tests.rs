@@ -1,7 +1,7 @@
 #[cfg(test)]
 mod tests {
 
-    use mysql::{PooledConn};
+    use mysql::PooledConn;
 
     use mysql::prelude::Queryable;
 
@@ -10,17 +10,16 @@ mod tests {
     use anyhow::Error;
 
     async fn setup_storage() -> MySQLStorage {
-
-        let storage = MySQLStorage::new(
-            MySQLConfig::new(
-                "public,movies".into(),
-                "localhost".into(),
-                3306,
-                "searchservice".into(),
-                "searchservice".into(),
-                "searchservice".into()
-            )
-        ).await.expect("Error initializing MySQLStorage");
+        let storage = MySQLStorage::new(MySQLConfig::new(
+            "public,movies".into(),
+            "localhost".into(),
+            3306,
+            "searchservice".into(),
+            "searchservice".into(),
+            "searchservice".into(),
+        ))
+        .await
+        .expect("Error initializing MySQLStorage");
 
         storage
     }
@@ -46,9 +45,7 @@ mod tests {
     async fn test_get_db_tables() -> Result<(), Error> {
         let storage = setup_storage().await;
 
-        let tables = storage
-            .get_db_tables(&storage.allowed_schemas)
-            .await?;
+        let tables = storage.get_db_tables(&storage.allowed_schemas).await?;
         let expected_table_qty = 17;
 
         assert_eq!(tables.len(), expected_table_qty);
@@ -90,10 +87,7 @@ mod tests {
             .any(|pk| pk.attribute_name == "person_id"));
 
         let table_zero_primary_keys = storage
-            .get_table_primary_keys(
-                &"movies".to_string(),
-                &"production_country".to_string(),
-            )
+            .get_table_primary_keys(&"movies".to_string(), &"production_country".to_string())
             .await?;
         let expected_zero_pkeys_qty = 0;
 
@@ -135,11 +129,10 @@ mod tests {
     async fn test_get_db_schema_info() -> Result<(), Error> {
         let storage = setup_storage().await;
         let schema_info = storage.get_db_schema_info().await?;
-        
+
         assert!(schema_info.tables.len() > 0);
-        assert!(schema_info.foreing_keys.len() > 0);
+        assert!(schema_info.foreign_keys.len() > 0);
 
         Ok(())
     }
-
 }

@@ -8,16 +8,16 @@ mod tests {
     use deadpool_postgres::Object;
 
     async fn setup_storage() -> PostgresStorage {
-        let storage = PostgresStorage::new(
-            PostgresConfig::new(
-                "public,movies".into(),
-                "localhost".into(),
-                54329,
-                "search-service".into(),
-                "search-service".into(),
-                "search-service".into()
-            )
-        ).await.unwrap();
+        let storage = PostgresStorage::new(PostgresConfig::new(
+            "public,movies".into(),
+            "localhost".into(),
+            54329,
+            "search-service".into(),
+            "search-service".into(),
+            "search-service".into(),
+        ))
+        .await
+        .unwrap();
         storage
     }
 
@@ -139,7 +139,7 @@ mod tests {
         let schema_info = storage.get_db_schema_info().await?;
 
         assert!(schema_info.tables.len() > 0);
-        assert!(schema_info.foreing_keys.len() > 0);
+        assert!(schema_info.foreign_keys.len() > 0);
 
         Ok(())
     }

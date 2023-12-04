@@ -73,13 +73,17 @@ async fn get_filter_properties(
         "schema_info": serde_json::json!(db_schema_info),
     });
 
-    Json(json_response)
+    
+    (
+        [("Access-Control-Allow-Origin", "http://localhost:3000")],
+        Json(json_response)
+    )
 }
 
 async fn search(
     Extension(storage): Extension<Arc<dyn SearchServiceStorage>>,
     Json(payload): Json<SearchRequest>,
-) -> Result<Json<String>, RequestError> {
+) -> Result<impl IntoResponse, RequestError> {
     let SearchRequest {
         projection,
         filters,
@@ -142,5 +146,9 @@ async fn search(
         message: "failed to serialize response".into(),
     })?;
 
-    Ok(Json(res))
+    
+    Ok((
+        [("Access-Control-Allow-Origin", "http://localhost:3000")],
+        Json(res)
+    ))
 }

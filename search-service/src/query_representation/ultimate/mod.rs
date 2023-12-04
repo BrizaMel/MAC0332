@@ -43,7 +43,7 @@ fn create_select_query(projection: Vec<String>) -> String {
     let len = projection.len();
 
     for (idx, column) in projection.iter().enumerate() {
-        select_query.push_str(column);
+        select_query.push_str(&format!("{column}::TEXT"));
         if idx != len - 1 {
             select_query.push_str(", ");
         }
@@ -204,7 +204,7 @@ mod tests {
         let projection = vec!["column1".into(), "column2".into(), "column3".into()];
         let select_query = create_select_query(projection);
 
-        assert_eq!(select_query, "SELECT column1, column2, column3");
+        assert_eq!(select_query, "SELECT column1::TEXT, column2::TEXT, column3::TEXT");
     }
 
     #[test]
@@ -327,7 +327,7 @@ mod tests {
             query,
             format!(
                 "{}\n{}\n{}",
-                "SELECT movies.movie.title, movies.movie.runtime",
+                "SELECT movies.movie.title::TEXT, movies.movie.runtime::TEXT",
                 "FROM movies.movie",
                 "WHERE (movies.movie.runtime > 200);"
             )
@@ -387,7 +387,7 @@ mod tests {
             query,
             format!(
                 "{}\n{}\n{}",
-                "SELECT movies.movie.title, movies.person.person_name",
+                "SELECT movies.movie.title::TEXT, movies.person.person_name::TEXT",
                 "FROM movies.movie, movies.movie_cast, movies.person",
                 "WHERE (movies.movie.movie_id = movies.movie_cast.movie_id AND movies.movie_cast.person_id = movies.person.person_id) AND \
                 (movies.person.person_name = movies.movie_cast.character_name);"
@@ -450,7 +450,7 @@ mod tests {
         assert_eq!(
             query, 
             format!("{}\n{}\n{}", 
-            "SELECT movies.movie.title, movies.movie.revenue, movies.movie.runtime, movies.movie.budget", 
+            "SELECT movies.movie.title::TEXT, movies.movie.revenue::TEXT, movies.movie.runtime::TEXT, movies.movie.budget::TEXT", 
             "FROM movies.movie", 
             "WHERE (((movies.movie.runtime > 200) OR (movies.movie.revenue > 1000000)) AND (movies.movie.budget > 1000000));"
         ));
@@ -506,7 +506,7 @@ mod tests {
 
         assert_eq!(query, format!(
             "{}\n{}\n{}", 
-            "SELECT movies.movie.movie_id, movies.movie.title", 
+            "SELECT movies.movie.movie_id::TEXT, movies.movie.title::TEXT", 
             "FROM movies.country, movies.movie, movies.production_country",
             "WHERE (\
             movies.country.country_id = movies.production_country.country_id AND \
@@ -607,7 +607,7 @@ mod tests {
 
         assert_eq!(query, format!(
             "{}\n{}\n{}", 
-            "SELECT movies.movie.movie_id, movies.movie.title",
+            "SELECT movies.movie.movie_id::TEXT, movies.movie.title::TEXT",
             "FROM movies.country, movies.movie, movies.movie_company, movies.production_company, movies.production_country",
             "WHERE (\
             movies.country.country_id = movies.production_country.country_id AND \

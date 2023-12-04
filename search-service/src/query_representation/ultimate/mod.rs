@@ -43,7 +43,7 @@ fn create_select_query(projection: Vec<String>) -> String {
     let len = projection.len();
 
     for (idx, column) in projection.iter().enumerate() {
-        select_query.push_str(&format!("{column}::TEXT"));
+        select_query.push_str(column);
         if idx != len - 1 {
             select_query.push_str(", ");
         }
@@ -201,7 +201,7 @@ mod tests {
 
     #[test]
     fn test_create_select_query() {
-        let projection = vec!["column1".into(), "column2".into(), "column3".into()];
+        let projection = vec!["column1::TEXT".into(), "column2::TEXT".into(), "column3::TEXT".into()];
         let select_query = create_select_query(projection);
 
         assert_eq!(select_query, "SELECT column1::TEXT, column2::TEXT, column3::TEXT");
@@ -303,8 +303,8 @@ mod tests {
     #[test]
     fn test_command_to_query_simple_command() -> Result<(), Error> {
         let mut projection: Vec<String> = Vec::new();
-        projection.push("movies.movie.title".to_string());
-        projection.push("movies.movie.runtime".to_string());
+        projection.push("movies.movie.title::TEXT".to_string());
+        projection.push("movies.movie.runtime::TEXT".to_string());
 
         let simple_command = SingleCommand::new(
             "movies.movie.runtime".to_string(),
@@ -339,8 +339,8 @@ mod tests {
     #[test]
     fn test_command_to_query_attribute_as_value() -> Result<(), Error> {
         let mut projection: Vec<String> = Vec::new();
-        projection.push("movies.movie.title".to_string());
-        projection.push("movies.person.person_name".to_string());
+        projection.push("movies.movie.title::TEXT".to_string());
+        projection.push("movies.person.person_name::TEXT".to_string());
 
         let simple_command = SingleCommand::new(
             "movies.person.person_name".to_string(),
@@ -400,10 +400,10 @@ mod tests {
     #[test]
     fn test_intermediary_to_final_composite_command() -> Result<(), Error> {
         let mut projection: Vec<String> = Vec::new();
-        projection.push("movies.movie.title".to_string());
-        projection.push("movies.movie.revenue".to_string());
-        projection.push("movies.movie.runtime".to_string());
-        projection.push("movies.movie.budget".to_string());
+        projection.push("movies.movie.title::TEXT".to_string());
+        projection.push("movies.movie.revenue::TEXT".to_string());
+        projection.push("movies.movie.runtime::TEXT".to_string());
+        projection.push("movies.movie.budget::TEXT".to_string());
 
         let mut nested_commands: Vec<Command> = Vec::new();
         let mut nested_commands_2: Vec<Command> = Vec::new();
@@ -461,8 +461,8 @@ mod tests {
     #[test]
     fn test_intermediary_to_final_composite_command_2() -> Result<(), Error> {
         let mut projection: Vec<String> = Vec::new();
-        projection.push("movies.movie.movie_id".to_string());
-        projection.push("movies.movie.title".to_string());
+        projection.push("movies.movie.movie_id::TEXT".to_string());
+        projection.push("movies.movie.title::TEXT".to_string());
 
         let simple_command = SingleCommand::new(
             "movies.country.country_name".to_string(),
@@ -520,8 +520,8 @@ mod tests {
     #[test]
     fn test_intermediary_to_final_composite_command_3() -> Result<(), Error> {
         let mut projection: Vec<String> = Vec::new();
-        projection.push("movies.movie.movie_id".to_string());
-        projection.push("movies.movie.title".to_string());
+        projection.push("movies.movie.movie_id::TEXT".to_string());
+        projection.push("movies.movie.title::TEXT".to_string());
 
         let composite_command_1 = CompositeCommand::new(LogicalOperator::And, vec![
             Command::SingleCommand(SingleCommand::new(

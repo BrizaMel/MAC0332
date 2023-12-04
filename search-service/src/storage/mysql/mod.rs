@@ -272,6 +272,10 @@ impl SearchServiceStorage for MySQLStorage {
             .map(|row| row_to_json(row?))
             .collect::<Result<Vec<serde_json::Value>>>()?)
     }
+
+    fn get_database(&self) -> &str {
+        "mysql"
+    }
 }
 
 fn vec_to_mysql_list(v: &Vec<String>) -> Result<String> {

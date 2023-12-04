@@ -115,8 +115,19 @@ async fn search(
     // create a visitor that turns a command into a query
     let visitor = DatabaseVisitor::new(table_search);
 
+    let casted_projection: Vec<String> = match storage.get_database() {
+        "postgres" => {
+            projection
+            .iter()
+            .map(|att| {format!("{}::TEXT",att)})
+            .collect::<Vec<String>>()          
+        },
+        "mysql" => projection,
+        _ => projection
+    };
+
     let query = command
-        .accept(projection, Arc::new(visitor))
+        .accept(casted_projection, Arc::new(visitor))
         .map_err(|_| RequestError {
             status_code: StatusCode::INTERNAL_SERVER_ERROR,
             message: "failed to build query".into(),

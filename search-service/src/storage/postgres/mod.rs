@@ -286,4 +286,8 @@ impl SearchServiceStorage for PostgresStorage {
             .map(row_to_json)
             .collect::<Result<Vec<serde_json::Value>>>()?)
     }
+
+    fn get_database(&self) -> &str {
+        "postgres"
+    }
 }

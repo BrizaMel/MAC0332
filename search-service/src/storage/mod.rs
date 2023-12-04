@@ -65,16 +65,16 @@ mod tests {
 
         let sc_return = Command::SingleCommand(simple_command).accept(
             vec![
-                "movies.movie.runtime".to_string(),
-                "movies.movie.revenue".to_string(),
+                "movies.movie.runtime::TEXT".to_string(),
+                "movies.movie.revenue::TEXT".to_string(),
             ],
             Arc::new(postgres_visitor.clone()),
         )?;
 
         let cc_return = Command::CompositeCommand(composite_command).accept(
             vec![
-                "movies.movie.runtime".to_string(),
-                "movies.movie.revenue".to_string(),
+                "movies.movie.runtime::TEXT".to_string(),
+                "movies.movie.revenue::TEXT".to_string(),
             ],
             Arc::new(postgres_visitor),
         )?;

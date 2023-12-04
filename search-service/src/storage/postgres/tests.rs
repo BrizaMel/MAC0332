@@ -6,6 +6,8 @@ mod tests {
 
     use crate::storage::postgres::{PostgresConfig, PostgresStorage};
 
+    use crate::traits::SearchServiceStorage;
+
     async fn setup_storage() -> PostgresStorage {
         let storage = PostgresStorage::new(PostgresConfig::new(
             "public,movies".into(),
@@ -142,4 +144,22 @@ mod tests {
 
         Ok(())
     }
+
+    #[tokio::test]
+    async fn test_execute() -> Result<(), Error> {
+        let storage = setup_storage().await;
+
+        let json = storage.execute(
+            "SELECT movies.movie.title::TEXT, movies.movie.revenue::TEXT \
+            FROM movies.movie \
+            ORDER BY movies.movie.title ASC \
+            LIMIT 2;".to_string()).await?;
+
+        assert_eq!(json.len(),2);
+        assert_eq!(json[0]["revenue"],"0".to_string());
+        assert_eq!(json[1]["title"],"$upercapitalist".to_string());
+
+        Ok(())
+    }
+
 }

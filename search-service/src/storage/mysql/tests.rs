@@ -8,6 +8,8 @@ mod tests {
 
     use crate::storage::mysql::{MySQLConfig, MySQLStorage};
 
+    use crate::traits::SearchServiceStorage;
+
     async fn setup_storage() -> MySQLStorage {
         let storage = MySQLStorage::new(MySQLConfig::new(
             "public,movies".into(),
@@ -134,4 +136,22 @@ mod tests {
 
         Ok(())
     }
+
+    #[tokio::test]
+    async fn test_execute() -> Result<(), Error> {
+        let storage = setup_storage().await;
+
+        let json = storage.execute(
+            "SELECT movies.movie_cast.character_name,movies.person.person_name \
+            FROM movies.movie_cast, movies.person \
+            WHERE movies.movie_cast.person_id = movies.person.person_id \
+            ORDER BY movies.person.person_name ASC \
+            LIMIT 4;".to_string()).await?;
+        assert_eq!(json.len(),4);
+        assert_eq!(json[0]["character_name"],"El Chiquis".to_string());
+        assert_eq!(json[3]["person_name"],"'Snub' Pollard".to_string());
+
+        Ok(())
+    }
+
 }

@@ -7,9 +7,12 @@ use std::time::Duration;
 use crate::relational::entities::{Attribute, DbSchema, ForeignKey, PrimaryKey, Table};
 use crate::traits::SearchServiceStorage;
 
+use self::utils::row_to_json;
+
 pub mod queries;
 #[cfg(test)]
 pub mod tests;
+pub mod utils;
 
 pub struct MySQLConfig {
     pub host: String,
@@ -259,8 +262,15 @@ impl SearchServiceStorage for MySQLStorage {
         Ok(db_schema)
     }
 
-    async fn execute(&self, _query: String) -> Result<Vec<serde_json::Value>, Error> {
-        todo!()
+    async fn execute(&self, query: String) -> Result<Vec<serde_json::Value>, Error> {
+        let mut conn = self.get_client()?;
+
+        let rows = conn.query_iter(query)?;
+
+        Ok(rows
+            .into_iter()
+            .map(|row| row_to_json(row?))
+            .collect::<Result<Vec<serde_json::Value>>>()?)
     }
 }
 

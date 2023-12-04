@@ -7,6 +7,9 @@ use crate::query_representation::ultimate::command_to_query;
 
 use anyhow::Error;
 
+pub mod mysql;
+pub mod postgres;
+
 #[derive(Clone)]
 pub struct DatabaseVisitor {
     //TableSearch struct with information on the db's tables
@@ -37,11 +40,10 @@ mod tests {
         create_composite_command, create_simple_command,
     };
 
-    use crate::database_storage::visitor::DatabaseVisitor;
-
     use crate::relational::entities::ForeignKey;
     use crate::relational::table_search::entities::TableSearchInfo;
     use crate::relational::table_search::TableSearch;
+    use crate::storage::DatabaseVisitor;
     use crate::traits::Component;
 
     use anyhow::Error;
@@ -77,8 +79,8 @@ mod tests {
             Arc::new(postgres_visitor),
         )?;
 
-        assert_eq!(sc_return, "SELECT movies.movie.runtime, movies.movie.revenue\nFROM movies.movie\nWHERE (movies.movie.runtime > 200);".to_string());
-        assert_eq!(cc_return, "SELECT movies.movie.runtime, movies.movie.revenue\nFROM movies.movie\nWHERE ((movies.movie.runtime > 200) AND (movies.movie.revenue > 1000000));".to_string());
+        assert_eq!(sc_return, "SELECT movies.movie.runtime::TEXT, movies.movie.revenue::TEXT\nFROM movies.movie\nWHERE (movies.movie.runtime > 200);".to_string());
+        assert_eq!(cc_return, "SELECT movies.movie.runtime::TEXT, movies.movie.revenue::TEXT\nFROM movies.movie\nWHERE ((movies.movie.runtime > 200) AND (movies.movie.revenue > 1000000));".to_string());
 
         Ok(())
     }

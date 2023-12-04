@@ -1,11 +1,10 @@
 #[cfg(test)]
 mod tests {
-
-    use crate::postgres::{PostgresConfig, PostgresStorage};
-
     use anyhow::Error;
 
     use deadpool_postgres::Object;
+
+    use crate::storage::postgres::{PostgresConfig, PostgresStorage};
 
     async fn setup_storage() -> PostgresStorage {
         let storage = PostgresStorage::new(PostgresConfig::new(

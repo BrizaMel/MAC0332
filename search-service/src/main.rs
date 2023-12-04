@@ -1,10 +1,8 @@
 pub mod cli;
 pub mod controller;
-pub mod database_storage;
-pub mod mysql;
-pub mod postgres;
-pub mod relational;
 pub mod query_representation;
+pub mod relational;
+pub mod storage;
 pub mod traits;
 
 use crate::cli::{Cli, Command};

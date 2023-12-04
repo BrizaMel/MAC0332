@@ -1,13 +1,12 @@
 #[cfg(test)]
 mod tests {
-
     use mysql::PooledConn;
 
     use mysql::prelude::Queryable;
 
-    use crate::mysql::{MySQLConfig, MySQLStorage};
-
     use anyhow::Error;
+
+    use crate::storage::mysql::{MySQLConfig, MySQLStorage};
 
     async fn setup_storage() -> MySQLStorage {
         let storage = MySQLStorage::new(MySQLConfig::new(

@@ -3,15 +3,23 @@ import { useEffect, useState } from "react";
 import Autocomplete from "@mui/material/Autocomplete";
 import { TextField } from "@mui/material";
 
+import { QueryComponentColor } from "@/model/QueryComponentColor";
+
 export default function SelectComponent({
   queryParam,
   isLast,
   handleDelete,
   schemaInfoParam,
+  componentColor,
 }: any) {
   const query: QueryModel = queryParam;
   const schemaInfo: SchemaInfo = schemaInfoParam;
+  const [colorHandler, _updateColorHandler] = useState<QueryComponentColor>(componentColor);
   const [subqueries, setSubqueries] = useState<QueryModel[] | undefined>();
+
+  const thisTextAccentColor = colorHandler.getTextColor();
+  const thisAccentColor = colorHandler.getAccentColor();
+  const thisBackgroundColor = colorHandler.getBackgroundColor();
 
   useEffect(() => {
     query.subQueries = subqueries;
@@ -53,9 +61,10 @@ export default function SelectComponent({
 
   return (
     <div>
-      <div className="select-component">
-        <h3>Query</h3> <br />
-        <div style={{ display: "flex", alignItems: "center" }}>
+      <div className="select-component" style={
+        {backgroundColor: thisBackgroundColor, borderColor:thisAccentColor}}>
+        <h3 style={{color: thisTextAccentColor}}>Query</h3> <br />
+        <div style={{ display: "flex", alignItems: "center",marginBottom: "2vh" }}>
           <Autocomplete
             className="select-attr"
             options={schemaInfo.attributes.map((attr) => attr.name)}
@@ -132,6 +141,7 @@ export default function SelectComponent({
               queryParam={subquery}
               schemaInfoParam={schemaInfo}
               isLast={index == subqueries.length - 1}
+              componentColor={colorHandler.createChildColor()}
             />
           </div>
         ))}

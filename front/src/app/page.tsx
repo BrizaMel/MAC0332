@@ -9,9 +9,11 @@ import { download } from "@/helper/Downloader";
 import requestInfo from "@/service/Client";
 import MultipleSelect from "./components/MultipleSelects";
 import { generateStringFromQueryArray } from "@/helper/StringHelper";
+import { QueryComponentColor } from "@/model/QueryComponentColor";
 
 export default function Home() {
   const [schemaInfo, setSchemaInfo] = useState<SchemaInfo>();
+  const [colorHandler, _updateColorHandler] = useState<QueryComponentColor>(QueryComponentColor.createBaseColor());
 
   useEffect(() => {
     const data = requestInfo();
@@ -52,7 +54,7 @@ export default function Home() {
   }
 
   return (
-    <main>
+    <main style={{minHeight:"100vh"}}>
       <h1>SBCBD --------</h1>
       <h1>Campos a serem visualizados</h1>
       <MultipleSelect
@@ -68,6 +70,7 @@ export default function Home() {
           queryParam={query}
           schemaInfoParam={schemaInfo}
           isLast={index == queries.length - 1}
+          componentColor={colorHandler.createChildColor()}
         />
       ))}
       <button onClick={addQueries}>ADD</button>

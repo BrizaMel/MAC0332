@@ -1,26 +1,5 @@
-export default function getSelectedAttributesFromQueries(
-  queries: QueryModel[]
-): QueryModelExport[] {
-  return queries.map((q, index) =>
-    getSelectedAttributesFromQuery(q, index == queries.length - 1)
-  );
-}
-
-function getSelectedAttributesFromQuery(
-  query: QueryModel,
-  isLast: boolean
-): QueryModelExport {
-  return {
-    selectedAttribute: query.selectedAttribute!,
-    selectedOperator: query.selectedOperator!,
-    selectedValue: query.selectedInput!,
-    selectedLogical: isLast ? "" : query.selectedLogical!,
-    selectedLogicalSubquerie: query.selectedLogicalSubquerie ?? "",
-    subqueries:
-      query.subQueries && query.subQueries.length > 0
-        ? getSelectedAttributesFromQueries(query.subQueries)
-        : undefined,
-  };
+export function validateProjection(projection: string[]): boolean {
+  return projection.length > 0;
 }
 
 export function validateQueries(queries: QueryModel[]): boolean {
@@ -37,6 +16,9 @@ function validateQuery(query: QueryModel): boolean {
     return false;
 
   if (query.selectedOperator == undefined || query.selectedOperator == "")
+    return false;
+
+  if (query.selectedInput == undefined || query.selectedAttribute == "")
     return false;
 
   if (

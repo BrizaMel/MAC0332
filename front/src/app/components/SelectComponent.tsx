@@ -1,7 +1,17 @@
 import updateUUID from "@/helper/UUIDHandler";
 import { useEffect, useState } from "react";
 import Autocomplete from "@mui/material/Autocomplete";
-import { TextField } from "@mui/material";
+import {
+  FormControl,
+  InputLabel,
+  MenuItem,
+  Select,
+  SelectChangeEvent,
+  TextField,
+} from "@mui/material";
+import DeleteIcon from "@mui/icons-material/Delete";
+
+import IconButton from "@mui/material/IconButton";
 
 import { QueryComponentColor } from "@/model/QueryComponentColor";
 
@@ -14,7 +24,8 @@ export default function SelectComponent({
 }: any) {
   const query: QueryModel = queryParam;
   const schemaInfo: SchemaInfo = schemaInfoParam;
-  const [colorHandler, _updateColorHandler] = useState<QueryComponentColor>(componentColor);
+  const [colorHandler, _updateColorHandler] =
+    useState<QueryComponentColor>(componentColor);
   const [subqueries, setSubqueries] = useState<QueryModel[] | undefined>();
 
   const thisTextAccentColor = colorHandler.getTextColor();
@@ -33,8 +44,8 @@ export default function SelectComponent({
     query.selectedInput = inputText;
   }
 
-  function handleSelectedOperator(value: string) {
-    query.selectedOperator = value;
+  function handleSelectedOperator(event: SelectChangeEvent) {
+    query.selectedOperator = event.target.value;
   }
 
   function addSubqueries() {
@@ -51,20 +62,27 @@ export default function SelectComponent({
     );
   }
 
-  function handleSelectedLogical(value: string) {
-    query.selectedLogical = value;
+  function handleSelectedLogicalSubquerie(event: SelectChangeEvent) {
+    query.selectedLogicalSubquerie = event.target.value;
   }
 
-  function handleSelectedLogicalSubquerie(value: string) {
-    query.selectedLogicalSubquerie = value;
+  function handleSelectedLogical(event: SelectChangeEvent) {
+    query.selectedLogical = event.target.value;
   }
 
   return (
     <div>
-      <div className="select-component" style={
-        {backgroundColor: thisBackgroundColor, borderColor:thisAccentColor}}>
-        <h3 style={{color: thisTextAccentColor}}>Query</h3> <br />
-        <div style={{ display: "flex", alignItems: "center",marginBottom: "2vh" }}>
+      <div
+        className="select-component"
+        style={{
+          backgroundColor: thisBackgroundColor,
+          borderColor: thisAccentColor,
+        }}
+      >
+        <h3 style={{ color: thisTextAccentColor }}>Query</h3> <br />
+        <div
+          style={{ display: "flex", alignItems: "top", marginBottom: "2vh" }}
+        >
           <Autocomplete
             className="select-attr"
             options={schemaInfo.attributes.map((attr) => attr.name)}
@@ -73,6 +91,7 @@ export default function SelectComponent({
             }}
             popupIcon={""}
             clearIcon={""}
+            forcePopupIcon={false}
             renderInput={(params) => (
               <TextField {...params} label={"Procure um atributo"} />
             )}
@@ -84,17 +103,20 @@ export default function SelectComponent({
               );
             }}
           />
-          <select
-            className="logical-select"
-            onChange={(e) => handleSelectedOperator(e.target.value)}
-          >
-            <option></option>
-            {schemaInfo.operators.map((op) => (
-              <option key={op} value={op}>
-                {op}
-              </option>
-            ))}
-          </select>
+          <FormControl>
+            <InputLabel id="label-operador">Operador</InputLabel>
+            <Select
+              onChange={handleSelectedOperator}
+              className="mui-select"
+              labelId="label-operador"
+            >
+              {schemaInfo.operators.map((op) => (
+                <MenuItem key={op} value={op}>
+                  {op}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
 
           <Autocomplete
             freeSolo
@@ -117,21 +139,32 @@ export default function SelectComponent({
             }}
           />
 
-          <button onClick={(e) => handleDelete(query)}>delete</button>
+          <IconButton
+            aria-label="delete"
+            style={{ width: 40, height: 55 }}
+            size="large"
+            onClick={(e) => handleDelete(query)}
+          >
+            <DeleteIcon sx={{ color: "grey" }} fontSize="inherit" />
+          </IconButton>
         </div>
         {subqueries && subqueries.length > 0 && (
-          <select
-            onChange={(e) => handleSelectedLogicalSubquerie(e.target.value)}
-            className="logical-select"
-            style={{ marginLeft: 30, marginTop: 40 }}
+          <FormControl
+            style={{ marginLeft: 40, marginTop: 30, marginBottom: 20 }}
           >
-            <option value="empty"></option>
-            {schemaInfo.logical_operators.map((op) => (
-              <option key={op} value={op}>
-                {op}
-              </option>
-            ))}
-          </select>
+            <InputLabel id="label-operador">Operador</InputLabel>
+            <Select
+              onChange={handleSelectedLogicalSubquerie}
+              className="mui-select"
+              labelId="label-operador"
+            >
+              {schemaInfo.logical_operators.map((op) => (
+                <MenuItem key={op} value={op}>
+                  {op}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
         )}
         {subqueries?.map((subquery, index) => (
           <div style={{ marginLeft: 20 }} key={subquery.id}>
@@ -152,18 +185,22 @@ export default function SelectComponent({
       </div>
 
       {!isLast && (
-        <select
-          className="logical-select"
-          style={{ marginTop: 40 }}
-          onChange={(e) => handleSelectedLogical(e.target.value)}
+        <FormControl
+          style={{ marginLeft: 40, marginTop: 30, marginBottom: 20 }}
         >
-          <option value="empty"></option>
-          {schemaInfo.logical_operators.map((op) => (
-            <option key={op} value={op}>
-              {op}
-            </option>
-          ))}
-        </select>
+          <InputLabel id="label-operador">Operador</InputLabel>
+          <Select
+            onChange={handleSelectedLogical}
+            className="mui-select"
+            labelId="label-operador"
+          >
+            {schemaInfo.logical_operators.map((op) => (
+              <MenuItem key={op} value={op}>
+                {op}
+              </MenuItem>
+            ))}
+          </Select>
+        </FormControl>
       )}
     </div>
   );

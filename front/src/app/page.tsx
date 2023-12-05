@@ -3,17 +3,19 @@
 import { useEffect, useState } from "react";
 import SelectComponent from "./components/SelectComponent";
 import updateUUID from "@/helper/UUIDHandler";
-import { validateQueries } from "@/helper/QueryValidator";
-import getSelectedAttributesFromQueries from "@/helper/QueryValidator";
-import { download } from "@/helper/Downloader";
-import requestInfo from "@/service/Client";
+import { validateProjection, validateQueries } from "@/helper/QueryValidator";
+import getSelectedAttributesFromQueries from "@/helper/QueryFilter";
+import { requestInfo, sendQueryRequest } from "@/service/Client";
 import MultipleSelect from "./components/MultipleSelects";
 import { generateStringFromQueryArray } from "@/helper/StringHelper";
 import { QueryComponentColor } from "@/model/QueryComponentColor";
 
 export default function Home() {
   const [schemaInfo, setSchemaInfo] = useState<SchemaInfo>();
-  const [colorHandler, _updateColorHandler] = useState<QueryComponentColor>(QueryComponentColor.createBaseColor());
+  const [colorHandler, _updateColorHandler] = useState<QueryComponentColor>(
+    QueryComponentColor.createBaseColor()
+  );
+  const [response, setResponse] = useState<Array<Object>>([]);
 
   useEffect(() => {
     const data = requestInfo();
@@ -36,8 +38,8 @@ export default function Home() {
   }
 
   function save() {
-    if (!validateQueries(queries)) {
-      console.log("INVALID");
+    if (!validateQueries(queries) || !validateProjection(projection)) {
+      alert("Preencha os campos corretamente!");
       return;
     }
     const queriesToSave = getSelectedAttributesFromQueries(queries);
@@ -47,34 +49,59 @@ export default function Home() {
       filters: querieString,
     } as RequestModel;
 
-    const dict = JSON.stringify(toSave);
-    // download(dict, "query.json");
-    console.log(toSave);
-    console.log(queriesToSave);
+    const reqResponse = sendQueryRequest(toSave);
+    Promise.resolve(reqResponse).then((value) => setResponse(value));
   }
 
   return (
-    <main style={{minHeight:"100vh"}}>
-      <h1>SBCBD --------</h1>
-      <h1>Campos a serem visualizados</h1>
-      <MultipleSelect
-        values={schemaInfo?.attributes}
-        handleProjection={setProjection}
-      />
-
-      <h1>Filtros</h1>
-      {queries.map((query, index) => (
-        <SelectComponent
-          key={query.id}
-          handleDelete={handleDeleteFromChild}
-          queryParam={query}
-          schemaInfoParam={schemaInfo}
-          isLast={index == queries.length - 1}
-          componentColor={colorHandler.createChildColor()}
+    <main>
+      <h1 id="header-name">Serviço de Busca Complexa em Banco de Dados </h1>
+      <div className="main-container">
+        <h1>Campos a serem visualizados</h1>
+        <MultipleSelect
+          values={schemaInfo?.attributes}
+          handleProjection={setProjection}
         />
-      ))}
-      <button onClick={addQueries}>ADD</button>
-      <button onClick={save}>SAVE</button>
+
+        <h1>Filtros</h1>
+        {queries.map((query, index) => (
+          <SelectComponent
+            key={query.id}
+            handleDelete={handleDeleteFromChild}
+            queryParam={query}
+            schemaInfoParam={schemaInfo}
+            isLast={index == queries.length - 1}
+            componentColor={colorHandler.createChildColor()}
+          />
+        ))}
+        <button onClick={addQueries}>ADD</button>
+        <button onClick={save}>SAVE</button>
+
+        {response.length > 0 && (
+          <table id="results-table">
+            <tr id="first-row">
+              {Object.keys(response[0]).map((key) => (
+                <td key={key}>{key}</td>
+              ))}
+            </tr>
+            {response.map((obj, index) => {
+              return (
+                <tr key={index} className="row-container">
+                  {Object.keys(obj).map((key) => {
+                    type ObjectKey = keyof typeof obj;
+                    const k = key as ObjectKey;
+                    return (
+                      <td key={key}>
+                        {JSON.stringify(obj[k]).replaceAll('"', "")}
+                      </td>
+                    );
+                  })}
+                </tr>
+              );
+            })}
+          </table>
+        )}
+      </div>
     </main>
   );
 }

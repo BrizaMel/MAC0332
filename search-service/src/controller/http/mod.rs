@@ -19,7 +19,7 @@ pub async fn run_http_server() -> anyhow::Result<()> {
     let addr: SocketAddr = "0.0.0.0:3000".parse().expect("provide a valid address");
 
     let storage = get_storage().await?;
-    let manager = SearchServiceManager::new(storage);
+    let manager = SearchServiceManager::new(storage).await;
 
     let get_filter_properties = Router::new().route("/properties", get(get_filter_properties));
     let search = Router::new().route("/search", post(search));

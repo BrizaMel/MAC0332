@@ -25,14 +25,14 @@ use crate::{
 
 
 pub async fn get_filter_properties(
-    db_schema: DbSchema,
-    table_search: TableSearch,
+    db_schema: &DbSchema,
+    table_search: &TableSearch,
     storage: &Arc<dyn SearchServiceStorage>
 ) -> Result<Properties,Error> {
 
     let properties = Properties::new(
-        db_schema,
-        table_search,
+        db_schema.clone(),
+        table_search.clone(),
         storage
     );
 

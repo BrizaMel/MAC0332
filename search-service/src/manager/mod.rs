@@ -33,17 +33,15 @@ pub enum ManagerError {
 #[derive(Clone)]
 pub struct SearchServiceManager {
     pub storage: Arc<dyn SearchServiceStorage>,
+    pub db_schema: DbSchema,
+    pub table_search: TableSearch
 }
 
 impl SearchServiceManager {
-    pub fn new(storage: Arc<dyn SearchServiceStorage>) -> Self {
-        Self { storage }
-    }
+    pub async fn new(storage: Arc<dyn SearchServiceStorage>) -> Self {
 
-    pub async fn get_filter_properties(&self) -> Result<Properties, ManagerError> {
+        let db_schema = storage.get_db_schema_info().await.expect("Error getting schema info");
 
-        let db_schema = self.storage.get_db_schema_info().await?;
-        
         let tables_search_info: Vec<TableSearchInfo> = db_schema.tables
             .clone()
             .into_iter()
@@ -52,7 +50,15 @@ impl SearchServiceManager {
 
         let table_search = TableSearch::new(tables_search_info, db_schema.foreign_keys.clone());
 
-        Ok(get_filter_properties(db_schema, table_search, &self.storage).await?)
+        Self {
+            storage,
+            db_schema,
+            table_search
+        }
+    }
+
+    pub async fn get_filter_properties(&self) -> Result<Properties, ManagerError> {
+        Ok(get_filter_properties(&self.db_schema, &self.table_search, &self.storage).await?)
     }
 
     pub async fn search(
@@ -72,19 +78,7 @@ impl SearchServiceManager {
         let command =
             initial_to_command(filters).map_err(|e| ManagerError::ParseError(e.to_string()))?;
 
-        let DbSchema {
-            tables,
-            foreign_keys,
-        } = self.storage.get_db_schema_info().await?;
-
-        let tables_search_info: Vec<TableSearchInfo> = tables
-            .clone()
-            .into_iter()
-            .map(TableSearchInfo::from)
-            .collect();
-
-        let table_search = TableSearch::new(tables_search_info, foreign_keys.clone());
-        let visitor = DatabaseVisitor::new(table_search);
+        let visitor = DatabaseVisitor::new(self.table_search.clone());
 
         let query = command
             .accept(projection, Arc::new(visitor))

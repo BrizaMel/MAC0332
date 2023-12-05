@@ -11,7 +11,7 @@ use crate::storage::mysql::{MySQLConfig, MySQLStorage};
 use crate::storage::postgres::{PostgresConfig, PostgresStorage};
 use crate::traits::SearchServiceStorage;
 
-use self::entities::{RequestError, SearchRequest, SearchResponse};
+use self::entities::{RequestError, Response, SearchRequest};
 
 pub mod entities;
 
@@ -64,13 +64,13 @@ async fn get_filter_properties(
         "properties": serde_json::json!(properties),
     });
 
-    Ok(SearchResponse::new(StatusCode::OK, res))
+    Ok(Response::new(StatusCode::OK, res))
 }
 
 async fn search(
     Extension(manager): Extension<SearchServiceManager>,
     Json(payload): Json<SearchRequest>,
-) -> Result<SearchResponse<String>, RequestError> {
+) -> Result<Response<String>, RequestError> {
     let SearchRequest {
         projection,
         filters,
@@ -82,5 +82,5 @@ async fn search(
         message: "could not serialize response".into(),
     })?;
 
-    Ok(SearchResponse::new(StatusCode::OK, res))
+    Ok(Response::new(StatusCode::OK, res))
 }

@@ -1,3 +1,7 @@
+use serde::{Deserialize, Serialize};
+
+use strum_macros::{Display, EnumIter};
+
 #[derive(PartialEq, Debug)]
 pub struct SingleCommand {
     pub attribute: String,
@@ -11,7 +15,8 @@ pub struct Value {
     pub data_type: DataType,
 }
 
-#[derive(PartialEq, Debug)]
+#[derive(Serialize, Deserialize, PartialEq,
+    Debug, Clone, EnumIter, Display)]
 pub enum Operator {
     EqualTo,
     GreaterThan,
@@ -21,7 +26,8 @@ pub enum Operator {
     NotEqualTo,
 }
 
-#[derive(PartialEq, Debug, Clone)]
+#[derive(Serialize, Deserialize, PartialEq,
+    Debug, Clone, EnumIter, Display)]
 pub enum DataType {
     Integer,
     String,

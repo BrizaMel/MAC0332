@@ -52,7 +52,7 @@ async fn get_storage() -> anyhow::Result<Arc<dyn SearchServiceStorage>> {
 async fn get_filter_properties(
     Extension(manager): Extension<SearchServiceManager>,
 ) -> Result<impl IntoResponse, RequestError> {
-    let db_schema_info = manager
+    let properties = manager
         .get_filter_properties()
         .await
         .map_err(|e| RequestError {
@@ -61,7 +61,7 @@ async fn get_filter_properties(
         })?;
 
     let res = serde_json::json!({
-        "schema_info": serde_json::json!(db_schema_info),
+        "properties": serde_json::json!(properties),
     });
 
     Ok(SearchResponse::new(StatusCode::OK, res))

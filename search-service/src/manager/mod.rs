@@ -1,8 +1,14 @@
+pub mod properties;
+
 use std::sync::Arc;
 
 use thiserror::Error;
 
 use crate::{
+    manager::properties::{
+        get_filter_properties,
+        Properties
+    },
     query_representation::initial::initial_to_command,
     relational::{
         entities::DbSchema,
@@ -34,8 +40,19 @@ impl SearchServiceManager {
         Self { storage }
     }
 
-    pub async fn get_filter_properties(&self) -> Result<DbSchema, ManagerError> {
-        Ok(self.storage.get_db_schema_info().await?)
+    pub async fn get_filter_properties(&self) -> Result<Properties, ManagerError> {
+
+        let db_schema = self.storage.get_db_schema_info().await?;
+        
+        let tables_search_info: Vec<TableSearchInfo> = db_schema.tables
+            .clone()
+            .into_iter()
+            .map(TableSearchInfo::from)
+            .collect();
+
+        let table_search = TableSearch::new(tables_search_info, db_schema.foreign_keys.clone());
+
+        Ok(get_filter_properties(db_schema, table_search, &self.storage).await?)
     }
 
     pub async fn search(
@@ -58,7 +75,7 @@ impl SearchServiceManager {
         let DbSchema {
             tables,
             foreign_keys,
-        } = self.get_filter_properties().await?;
+        } = self.storage.get_db_schema_info().await?;
 
         let tables_search_info: Vec<TableSearchInfo> = tables
             .clone()

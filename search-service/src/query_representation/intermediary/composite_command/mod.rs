@@ -1,4 +1,4 @@
-use strum_macros::{Display, EnumString};
+use strum_macros::{Display, EnumString, EnumIter};
 
 use crate::query_representation::intermediary::Command;
 
@@ -8,7 +8,8 @@ pub struct CompositeCommand {
     pub commands: Vec<Command>,
 }
 
-#[derive(PartialEq, Debug, Display, EnumString)]
+#[derive(PartialEq, Debug, Display, 
+    EnumString, EnumIter, Clone)]
 #[strum(serialize_all = "UPPERCASE")]
 pub enum LogicalOperator {
     And,

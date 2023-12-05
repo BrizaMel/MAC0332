@@ -11,7 +11,7 @@ use crate::storage::mysql::{MySQLConfig, MySQLStorage};
 use crate::storage::postgres::{PostgresConfig, PostgresStorage};
 use crate::traits::SearchServiceStorage;
 
-use self::entities::{RequestError, SearchRequest, SearchResponse};
+use self::entities::{RequestError, Response, SearchRequest};
 
 pub mod entities;
 
@@ -19,7 +19,7 @@ pub async fn run_http_server() -> anyhow::Result<()> {
     let addr: SocketAddr = "0.0.0.0:3000".parse().expect("provide a valid address");
 
     let storage = get_storage().await?;
-    let manager = SearchServiceManager::new(storage);
+    let manager = SearchServiceManager::new(storage).await;
 
     let get_filter_properties = Router::new().route("/properties", get(get_filter_properties));
     let search = Router::new().route("/search", post(search));
@@ -52,7 +52,7 @@ async fn get_storage() -> anyhow::Result<Arc<dyn SearchServiceStorage>> {
 async fn get_filter_properties(
     Extension(manager): Extension<SearchServiceManager>,
 ) -> Result<impl IntoResponse, RequestError> {
-    let db_schema_info = manager
+    let properties = manager
         .get_filter_properties()
         .await
         .map_err(|e| RequestError {
@@ -61,16 +61,16 @@ async fn get_filter_properties(
         })?;
 
     let res = serde_json::json!({
-        "schema_info": serde_json::json!(db_schema_info),
+        "properties": serde_json::json!(properties),
     });
 
-    Ok(SearchResponse::new(StatusCode::OK, res))
+    Ok(Response::new(StatusCode::OK, res))
 }
 
 async fn search(
     Extension(manager): Extension<SearchServiceManager>,
     Json(payload): Json<SearchRequest>,
-) -> Result<SearchResponse<String>, RequestError> {
+) -> Result<Response<String>, RequestError> {
     let SearchRequest {
         projection,
         filters,
@@ -82,5 +82,5 @@ async fn search(
         message: "could not serialize response".into(),
     })?;
 
-    Ok(SearchResponse::new(StatusCode::OK, res))
+    Ok(Response::new(StatusCode::OK, res))
 }

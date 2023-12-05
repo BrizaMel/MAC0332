@@ -8,6 +8,8 @@ mod tests {
 
     use crate::traits::SearchServiceStorage;
 
+    use crate::query_representation::intermediary::single_command::DataType;
+
     async fn setup_storage() -> PostgresStorage {
         let storage = PostgresStorage::new(PostgresConfig::new(
             "public,movies".into(),
@@ -159,6 +161,28 @@ mod tests {
         assert_eq!(json[0]["revenue"],"0".to_string());
         assert_eq!(json[1]["title"],"$upercapitalist".to_string());
 
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn test_translate_native_type() -> Result<(), Error> {
+
+        let storage = setup_storage().await;
+
+        let mut native_type = "integer".into();
+        assert_eq!(storage.translate_native_type(native_type)?,DataType::Integer);
+
+        native_type = "character varying".into();
+        assert_eq!(storage.translate_native_type(native_type)?,DataType::String);
+
+        native_type = "numeric".into();
+        assert_eq!(storage.translate_native_type(native_type)?,DataType::Float);
+
+        native_type = "bigint".into();
+        assert_eq!(storage.translate_native_type(native_type)?,DataType::Integer);
+
+        native_type = "date".into();
+        assert_eq!(storage.translate_native_type(native_type)?,DataType::Date);
         Ok(())
     }
 

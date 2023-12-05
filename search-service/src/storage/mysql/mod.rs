@@ -4,6 +4,7 @@ use mysql::prelude::Queryable;
 use mysql::{from_row, params, OptsBuilder, Pool, PooledConn};
 use std::time::Duration;
 
+use crate::query_representation::intermediary::single_command::DataType;
 use crate::relational::entities::{Attribute, DbSchema, ForeignKey, PrimaryKey, Table};
 use crate::traits::SearchServiceStorage;
 
@@ -271,6 +272,28 @@ impl SearchServiceStorage for MySQLStorage {
             .into_iter()
             .map(|row| row_to_json(row?))
             .collect::<Result<Vec<serde_json::Value>>>()?)
+    }
+
+    fn translate_native_type(&self, mysql_type: &str) -> Result<DataType,Error> {
+
+        let data_type = match mysql_type {
+            "int" | "bigint" => {
+                DataType::Integer
+            },
+            "varchar" => {
+                DataType::String
+            },
+            "decimal" => {
+                DataType::Float
+            },
+            "date" => {
+                DataType::Date
+            }
+            _ => panic!("Unknown MySQL native type: {}",mysql_type)
+        };
+
+        Ok(data_type)
+
     }
 
     fn get_database(&self) -> &str {

@@ -20,6 +20,7 @@ DB_USER: dbms user
 DB_PASS: dbms password
 DB_NAME: database name
 ALLOWED_SCHEMAS: database schemas that can be queried
+FRONT_END_HOST: host of the front-end application
 ```
 
 ## Tests

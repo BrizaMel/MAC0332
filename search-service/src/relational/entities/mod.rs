@@ -33,7 +33,7 @@ pub struct PrimaryKey {
     pub attribute_name: String,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Clone)]
 pub struct DbSchema {
     pub tables: Vec<Table>,
     pub foreign_keys: Vec<ForeignKey>,

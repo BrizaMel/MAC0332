@@ -10,6 +10,8 @@ mod tests {
 
     use crate::traits::SearchServiceStorage;
 
+    use crate::query_representation::intermediary::single_command::DataType;
+
     async fn setup_storage() -> MySQLStorage {
         let storage = MySQLStorage::new(MySQLConfig::new(
             "public,movies".into(),
@@ -151,6 +153,28 @@ mod tests {
         assert_eq!(json[0]["character_name"],"El Chiquis".to_string());
         assert_eq!(json[3]["person_name"],"'Snub' Pollard".to_string());
 
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn test_translate_native_type() -> Result<(), Error> {
+
+        let storage = setup_storage().await;
+
+        let mut native_type = "int".into();
+        assert_eq!(storage.translate_native_type(native_type)?,DataType::Integer);
+
+        native_type = "varchar".into();
+        assert_eq!(storage.translate_native_type(native_type)?,DataType::String);
+
+        native_type = "decimal".into();
+        assert_eq!(storage.translate_native_type(native_type)?,DataType::Float);
+
+        native_type = "bigint".into();
+        assert_eq!(storage.translate_native_type(native_type)?,DataType::Integer);
+
+        native_type = "date".into();
+        assert_eq!(storage.translate_native_type(native_type)?,DataType::Date);
         Ok(())
     }
 

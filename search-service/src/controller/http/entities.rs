@@ -14,17 +14,17 @@ pub struct SearchRequest {
 }
 
 #[derive(Debug)]
-pub struct SearchResponse<T> {
+pub struct Response<T> {
     pub status_code: StatusCode,
     pub header: Vec<(HeaderName, String)>,
     pub response: T,
 }
 
-impl<T> SearchResponse<T> {
+impl<T> Response<T> {
     pub fn new(status_code: StatusCode, response: T) -> Self {
         let header = vec![(
             header::ACCESS_CONTROL_ALLOW_ORIGIN,
-            "http://localhost:3001".to_string(),
+            std::env::var("FRONT_END_HOST").unwrap_or("http://localhost:3000".to_string()),
         )];
 
         Self {
@@ -35,7 +35,7 @@ impl<T> SearchResponse<T> {
     }
 }
 
-impl<T: Serialize> IntoResponse for SearchResponse<T> {
+impl<T: Serialize> IntoResponse for Response<T> {
     fn into_response(self) -> axum::response::Response {
         let mut response = (self.status_code, Json(self.response)).into_response();
 

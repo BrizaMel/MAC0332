@@ -1,4 +1,4 @@
-# MAC0332 - Search service
+# MAC0332 - Search Service
 
 ## Build
 
@@ -38,28 +38,49 @@ cargo test
 <br>
 <br>
 
+# Features
+
+This system provides a complex database search service that allows anyone to search for information in a database without having knowledge of its schema, the language used to make queries or the DBMS. Thus, we implemented the following features:
+
+- Connect to a database
+- Obtain general DB schema information (relationships and data types)
+- Identify data types to restrict allowed operations 
+- Allow queries with logical operations (And, Or)
+- Allow queries with joins
+- Provide a front-end template
+
+<br>
+<br>
+
+
+# Use cases
+
+The following use cases examples describe the interaction with two different types of users, according to some of the system features:
+
+### 1. Standard user
+
+A standard user, i.e. people with or without knowledge in DBs, will be able to select the attributes that wishes to project and the query filters.
+
+<center>
+    <img src="docs/use_case_standard_user.png" alt="standard user" width="500" height="500" />
+</center>
+
+<br>
+
+### 2. Technical specialist
+
+A technical specialist, i.e. software engineers, will configurate the system to make the connection with the database and other configurations to enable the standard user to use it.
+
+<center>
+    <img src="docs/use_case_technical_specialist.png" alt="standard user" width="500" height="400" />
+</center>
+
+<br>
+<br>
+
+
 # Architecture
 
-## Front-end parser
+### 1. [Relational table search](search-service/src/relational/README.md)
 
-![Front-end parser](docs/front_end_parser.png)
-
-## Command
-
-![Command Architecture](<docs/command_architecture.png>)
-
-## Visitor
-
-![Vistior Architecture](docs/visitor_achitecture.png)
-
-
-## Query representation
-
-### Initial representation
-![Initial representation](docs/initial_representation.png)
-
-### Intermediary representation
-![Intermediary representation](docs/intermediary_representation.png)
-
-### Ultimate representation
-![Ultimate representation](docs/ultimate_representation.png)
+### 2. [Language interpretation](search-service/src/query_representation/README.md)

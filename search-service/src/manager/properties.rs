@@ -34,7 +34,7 @@ pub async fn get_filter_properties(
         db_schema.clone(),
         table_search.clone(),
         storage
-    );
+    )?;
 
     Ok(properties)
 }
@@ -73,9 +73,10 @@ impl Properties {
         db_schema: DbSchema,
         table_search: TableSearch,
         storage: &Arc<dyn SearchServiceStorage>
-    ) -> Self {
+    ) -> Result<Self,Error> {
 
-        let mut attributes : Vec<AttributeInfo> = Vec::new();
+        let mut attributes_info_vec : Vec<AttributeInfo> = Vec::new();
+
         let mut attributes_subsets : Vec<HashSet<u8>> = Vec::new();
         let mut tables_subsets : Vec<HashSet<String>> = Vec::new();
 
@@ -83,22 +84,21 @@ impl Properties {
             let full_table_name = format!("{}.{}",&table.schema,&table.name).to_string();
 
             let table_subset_id = manage_subsets(&full_table_name, &mut tables_subsets,
-                &mut attributes_subsets, &table_search).expect("Error finding table subset id");
+                &mut attributes_subsets, &table_search)?;
+
             for attribute in table.attributes{
                 let full_attr_name = format!("{}.{}",full_table_name,&attribute.name).to_string();
 
-                let data_type = storage
-                    .translate_native_type(&attribute.data_type)
-                    .expect(&format!("Error translating data type: {}",attribute.data_type));
+                let data_type = storage.translate_native_type(&attribute.data_type)?;
 
                 let attribute_info = AttributeInfo::new(
                     full_attr_name,
                     data_type,
                     table_subset_id
                 );
-                attributes.push(attribute_info);
+                attributes_info_vec.push(attribute_info);
 
-                let attribute_idx = (attributes.len() - 1) as u8;
+                let attribute_idx = (attributes_info_vec.len() - 1) as u8;
                 attributes_subsets[table_subset_id as usize].insert(attribute_idx);
             }
         }
@@ -111,12 +111,12 @@ impl Properties {
             .map(|o| o.clone().to_string())
             .collect();
 
-        Self {
-            attributes,
+        Ok(Self {
+            attributes: attributes_info_vec,
             subsets: attributes_subsets,
             operators,
             logical_operators
-        }
+        })
     }
 }
 
@@ -126,7 +126,8 @@ fn manage_subsets(
     attributes_subsets: &mut Vec<HashSet<u8>>,
     table_search: &TableSearch
 ) -> Result<u8,Error> {
-    let table_subset_id = find_subset_id_for_table(
+
+    let table_subset_id = find_table_subset_id(
         &table,
         &tables_subsets,
         &table_search
@@ -152,24 +153,21 @@ fn manage_subsets(
 // Given a table and a list of table sets, find which of these sets (or none of them)
 // the table belongs to. A table belongs to a set if it is joinable with the other tables of the set
 // The return value is the index of the subset in the HashSet vector.
-fn find_subset_id_for_table(
+fn find_table_subset_id(
     table: &str,
     table_subsets: &Vec<HashSet<String>>,
     table_search: &TableSearch
 )-> Result<u8,Error> {
     let mut subset_id : u8 = table_subsets.len() as u8;
 
-    let mut idx = 0;
-    for subset in table_subsets {
-        for table_name in subset {
+    for (idx, subset) in table_subsets.iter().enumerate() {
+        if subset.len() > 0 {
+            let table_name = subset.iter().next().unwrap();
             if are_tables_joinable(table, table_name, table_search)? {
-                subset_id = idx;
-                return Ok(subset_id);
+                subset_id = idx as u8;
+                return Ok(subset_id)
             }
-            break;
         }
-
-        idx = idx + 1;
     }
 
     Ok(subset_id)
@@ -185,7 +183,6 @@ fn are_tables_joinable(
             table_a.to_string(),
             table_b.to_string()
         )?;
-
     Ok(joinable_tables.contains(&table_b.to_string()))
 }
 
@@ -257,7 +254,7 @@ mod tests {
         let db_storage = aux_get_pg_storage().await?;
         let db_schema = aux_get_db_schema(&db_storage).await?;
         let table_search = aux_get_table_search(&db_schema)?;
-        let properties = Properties::new(db_schema, table_search, &db_storage);
+        let properties = Properties::new(db_schema, table_search, &db_storage)?;
 
         assert_eq!(properties.operators,
             vec![
@@ -279,7 +276,7 @@ mod tests {
         let db_storage = aux_get_mysql_storage().await?;
         let db_schema = aux_get_db_schema(&db_storage).await?;
         let table_search = aux_get_table_search(&db_schema)?;
-        let properties = Properties::new(db_schema, table_search, &db_storage);
+        let properties = Properties::new(db_schema, table_search, &db_storage)?;
 
         assert_eq!(properties.logical_operators,
             vec![
@@ -297,7 +294,7 @@ mod tests {
         let db_storage = aux_get_mysql_storage().await?;
         let db_schema = aux_get_db_schema(&db_storage).await?;
         let table_search = aux_get_table_search(&db_schema)?;
-        let properties = Properties::new(db_schema, table_search, &db_storage);
+        let properties = Properties::new(db_schema, table_search, &db_storage)?;
 
         let data_type_vec = DataType::iter().collect::<Vec<_>>();
         let possible_data_types : Vec<String> = data_type_vec
@@ -321,7 +318,7 @@ mod tests {
         let db_storage = aux_get_mysql_storage().await?;
         let db_schema = aux_get_db_schema(&db_storage).await?;
         let table_search = aux_get_table_search(&db_schema)?;
-        let properties = Properties::new(db_schema, table_search, &db_storage);
+        let properties = Properties::new(db_schema, table_search, &db_storage)?;
 
         for attribute in properties.attributes {
             assert_eq!(attribute.subset_id,0);

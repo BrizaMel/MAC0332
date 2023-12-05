@@ -24,7 +24,9 @@ impl<T> SearchResponse<T> {
     pub fn new(status_code: StatusCode, response: T) -> Self {
         let header = vec![(
             header::ACCESS_CONTROL_ALLOW_ORIGIN,
-            "http://localhost:3001".to_string(),
+            std::env::var("FRONT_END_HOST")
+                .unwrap_or_else(|_| "http://localhost:3000".to_string())
+                .to_string(),
         )];
 
         Self {

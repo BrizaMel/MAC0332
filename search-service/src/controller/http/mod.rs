@@ -3,34 +3,23 @@ use axum::Extension;
 use axum::{
     extract::Json, http::StatusCode, response::IntoResponse, routing::get, routing::post, Router,
 };
-use serde::Deserialize;
 use std::net::SocketAddr;
 use std::sync::Arc;
 
-use crate::query_representation::initial::initial_to_command;
-use crate::relational::entities::DbSchema;
-use crate::relational::table_search::entities::TableSearchInfo;
-use crate::relational::table_search::TableSearch;
+use crate::manager::SearchServiceManager;
 use crate::storage::mysql::{MySQLConfig, MySQLStorage};
 use crate::storage::postgres::{PostgresConfig, PostgresStorage};
-use crate::storage::DatabaseVisitor;
-use crate::traits::{Component, SearchServiceStorage};
+use crate::traits::SearchServiceStorage;
 
-use self::errors::RequestError;
+use self::entities::{RequestError, SearchRequest, SearchResponse};
 
-pub mod errors;
-
-#[derive(Debug, Deserialize)]
-pub struct SearchRequest {
-    projection: Vec<String>,
-    filters: String,
-}
+pub mod entities;
 
 pub async fn run_http_server() -> anyhow::Result<()> {
     let addr: SocketAddr = "0.0.0.0:3000".parse().expect("provide a valid address");
 
-    // Choose correct Storage class, depending on the aplication DBMS
     let storage = get_storage().await?;
+    let manager = SearchServiceManager::new(storage);
 
     let get_filter_properties = Router::new().route("/properties", get(get_filter_properties));
     let search = Router::new().route("/search", post(search));
@@ -38,7 +27,7 @@ pub async fn run_http_server() -> anyhow::Result<()> {
     let router = Router::new()
         .merge(get_filter_properties)
         .merge(search)
-        .layer(Extension(storage));
+        .layer(Extension(manager));
 
     axum::Server::bind(&addr)
         .serve(router.into_make_service())
@@ -61,94 +50,37 @@ async fn get_storage() -> anyhow::Result<Arc<dyn SearchServiceStorage>> {
 }
 
 async fn get_filter_properties(
-    Extension(storage): Extension<Arc<dyn SearchServiceStorage>>,
-) -> impl IntoResponse {
-    let db_schema_info = &storage
-        .get_db_schema_info()
+    Extension(manager): Extension<SearchServiceManager>,
+) -> Result<impl IntoResponse, RequestError> {
+    let db_schema_info = manager
+        .get_filter_properties()
         .await
-        .expect("Error retireving Database Schema Information");
+        .map_err(|e| RequestError {
+            status_code: StatusCode::INTERNAL_SERVER_ERROR,
+            message: e.to_string(),
+        })?;
 
-    let json_response = serde_json::json!({
-        "status": "success",
+    let res = serde_json::json!({
         "schema_info": serde_json::json!(db_schema_info),
     });
 
-    
-    (
-        [("Access-Control-Allow-Origin", "http://localhost:3000")],
-        Json(json_response)
-    )
+    Ok(SearchResponse::new(StatusCode::OK, res))
 }
 
 async fn search(
-    Extension(storage): Extension<Arc<dyn SearchServiceStorage>>,
+    Extension(manager): Extension<SearchServiceManager>,
     Json(payload): Json<SearchRequest>,
-) -> Result<impl IntoResponse, RequestError> {
+) -> Result<SearchResponse<String>, RequestError> {
     let SearchRequest {
         projection,
         filters,
     } = payload;
 
-    let command = initial_to_command(filters).map_err(|_| RequestError {
-        status_code: StatusCode::BAD_REQUEST,
-        message: "failed to parse request".into(),
-    })?;
-
-    // get database schema info, such as tables and foreign keys
-    let db_schema_info = &storage
-        .get_db_schema_info()
-        .await
-        .map_err(|_| RequestError {
-            status_code: StatusCode::INTERNAL_SERVER_ERROR,
-            message: "could not retrieve database schema info".into(),
-        })?;
-
-    let DbSchema {
-        tables,
-        foreign_keys,
-    } = db_schema_info;
-    let tables_search_info: Vec<TableSearchInfo> = tables
-        .clone()
-        .into_iter()
-        .map(TableSearchInfo::from)
-        .collect();
-
-    // create graph to represent links between tables
-    let table_search: TableSearch = TableSearch::new(tables_search_info, foreign_keys.clone());
-
-    // create a visitor that turns a command into a query
-    let visitor = DatabaseVisitor::new(table_search);
-
-    let casted_projection: Vec<String> = match storage.get_database() {
-        "postgres" => {
-            projection
-            .iter()
-            .map(|att| {format!("{}::TEXT",att)})
-            .collect::<Vec<String>>()          
-        },
-        "mysql" => projection,
-        _ => projection
-    };
-
-    let query = command
-        .accept(casted_projection, Arc::new(visitor))
-        .map_err(|_| RequestError {
-            status_code: StatusCode::INTERNAL_SERVER_ERROR,
-            message: "failed to build query".into(),
-        })?;
-
-    let res = storage.execute(query).await.map_err(|_| RequestError {
-        status_code: StatusCode::INTERNAL_SERVER_ERROR,
-        message: "failed to execute query".into(),
-    })?;
+    let res = manager.search(projection, filters).await?;
     let res = serde_json::to_string(&res).map_err(|_| RequestError {
         status_code: StatusCode::INTERNAL_SERVER_ERROR,
-        message: "failed to serialize response".into(),
+        message: "could not serialize response".into(),
     })?;
 
-    
-    Ok((
-        [("Access-Control-Allow-Origin", "http://localhost:3000")],
-        Json(res)
-    ))
+    Ok(SearchResponse::new(StatusCode::OK, res))
 }

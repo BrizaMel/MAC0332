@@ -1,5 +1,6 @@
 pub mod cli;
 pub mod controller;
+pub mod manager;
 pub mod query_representation;
 pub mod relational;
 pub mod storage;

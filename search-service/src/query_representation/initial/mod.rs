@@ -137,13 +137,17 @@ fn terminal_expression_to_simple_command(expression: String) -> Result<Command, 
         &_ => panic!("Wrong Operator type"),
     };
 
-    let value = match parts[2].to_string().parse::<f64>().is_ok() {
-        true => Value::new(parts[2].to_string(), DataType::Integer),
+    let mut parsed_value: String = parts[2].to_string();
+    for i in 3..parts.len() {
+        parsed_value.push_str(format!(" {}",parts[i]).as_str());
+    }
+    let value = match parsed_value.to_string().parse::<f64>().is_ok() {
+        true => Value::new(parsed_value.to_string(), DataType::Integer),
         false => {
-            if string_is_attribute(parts[2].to_string())? {
-                Value::new(parts[2].to_string(), DataType::Attribute)
+            if string_is_attribute(parsed_value.to_string())? {
+                Value::new(parsed_value.to_string(), DataType::Attribute)
             } else {
-                Value::new(parts[2].to_string(), DataType::String)
+                Value::new(parsed_value.to_string(), DataType::String)
             }
         }
     };

@@ -50,6 +50,23 @@ pub mod tests {
     }
 
     #[test]
+    fn test_initial_to_single_command_with_spaces() -> Result<(), Error> {
+        let filters = "movies.movie.title eq Star Wars".to_string();
+
+        let single_command = SingleCommand::new(
+            "movies.movie.title".to_string(),
+            Operator::EqualTo,
+            Value::new("Star Wars".to_string(), DataType::String),
+        );
+
+        let command = Command::SingleCommand(single_command);
+
+        assert_eq!(initial_to_command(filters)?, command);
+
+        Ok(())
+    }
+
+    #[test]
     fn test_initial_to_composite_command() -> Result<(), Error> {
         let filters = "movies.movie.runtime gt 200 AND movies.movie.revenue gt 1000000".to_string();
 

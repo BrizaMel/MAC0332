@@ -1,6 +1,7 @@
 use std::sync::Arc;
 
 use crate::query_representation::intermediary::Command;
+use crate::query_representation::intermediary::single_command::DataType;
 use crate::relational::entities::DbSchema;
 use anyhow::Error;
 
@@ -23,4 +24,5 @@ pub trait SearchServiceStorage: Sync + Send {
     async fn get_db_schema_info(&self) -> Result<DbSchema, Error>;
     async fn execute(&self, query: String) -> Result<Vec<serde_json::Value>, Error>;
     fn get_database(&self) -> &str;
+    fn translate_native_type(&self, native_type: &str) -> Result<DataType,Error>;
 }

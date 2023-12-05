@@ -8,6 +8,7 @@ pub mod queries;
 pub mod tests;
 pub mod utils;
 
+use crate::query_representation::intermediary::single_command::DataType;
 use crate::relational::entities::{Attribute, DbSchema, ForeignKey, PrimaryKey, Table};
 use crate::relational::table_search::entities::TableSearchInfo;
 use crate::relational::table_search::TableSearch;
@@ -287,7 +288,29 @@ impl SearchServiceStorage for PostgresStorage {
             .collect::<Result<Vec<serde_json::Value>>>()?)
     }
 
+    fn translate_native_type(&self, postgres_type: &str) -> Result<DataType,Error> {
+        let data_type = match postgres_type {
+            "integer" | "bigint" => {
+                DataType::Integer
+            },
+            "character varying" => {
+                DataType::String
+            },
+            "numeric" => {
+                DataType::Float
+            },
+            "date" => {
+                DataType::Date
+            },
+            _ => panic!("Unknown Postgres native type: {}",postgres_type)
+        };
+
+        Ok(data_type)
+    }
+
     fn get_database(&self) -> &str {
         "postgres"
     }
+
+
 }

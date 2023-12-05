@@ -25,7 +25,9 @@ pub enum Operator {
 pub enum DataType {
     Integer,
     String,
-    Attribute
+    Attribute,
+    Float,
+    Date,
 }
 
 impl SingleCommand {

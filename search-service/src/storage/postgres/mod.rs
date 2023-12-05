@@ -1,13 +1,19 @@
-use anyhow::{Ok, Result, Error};
+use anyhow::{Error, Ok, Result};
+use async_trait::async_trait;
 use deadpool_postgres::{Manager, ManagerConfig, Object, Pool, RecyclingMethod};
 use tokio_postgres::NoTls;
 
 pub mod queries;
+#[cfg(test)]
 pub mod tests;
+pub mod utils;
 
 use crate::relational::entities::{Attribute, DbSchema, ForeignKey, PrimaryKey, Table};
 use crate::relational::table_search::entities::TableSearchInfo;
 use crate::relational::table_search::TableSearch;
+use crate::traits::SearchServiceStorage;
+
+use self::utils::row_to_json;
 
 pub struct PostgresConfig {
     pub host: String,
@@ -19,11 +25,18 @@ pub struct PostgresConfig {
 }
 
 impl PostgresConfig {
-    pub fn new(allowed_schemas_string: String, db_host : String, db_port: u16, postgres_user: String,postgres_pass: String, postgres_db: String) -> Self {
+    pub fn new(
+        allowed_schemas_string: String,
+        db_host: String,
+        db_port: u16,
+        postgres_user: String,
+        postgres_pass: String,
+        postgres_db: String,
+    ) -> Self {
         let allowed_schemas: Vec<String> = allowed_schemas_string
             .split(",")
             .map(|s| s.to_string())
-            .collect();        
+            .collect();
         Self {
             host: db_host,
             port: db_port,
@@ -97,7 +110,7 @@ impl PostgresStorage {
         Ok(client)
     }
 
-    pub async fn get_db_schema_info(&self) -> Result<DbSchema,Error> {
+    pub async fn get_db_schema_info(&self) -> Result<DbSchema, Error> {
         let allowed_schemas: &Vec<String> = &self.allowed_schemas;
 
         let this_client = self
@@ -238,5 +251,43 @@ impl PostgresStorage {
 
         Ok(foreign_keys_vec)
     }
+}
 
+#[async_trait]
+impl SearchServiceStorage for PostgresStorage {
+    async fn get_db_schema_info(&self) -> Result<DbSchema, Error> {
+        let allowed_schemas: &Vec<String> = &self.allowed_schemas;
+
+        let this_client = self
+            .get_client()
+            .await
+            .expect("Unable to retrieve Postgres Client");
+        let tables = self
+            .get_db_tables(&this_client, &allowed_schemas)
+            .await
+            .expect("Error retireving Database Tables");
+        let foreign_keys = self
+            .get_db_foreign_keys(&this_client, &allowed_schemas)
+            .await
+            .expect("Error retireving Database Foreign Keys");
+
+        let db_schema: DbSchema = DbSchema::new(tables, foreign_keys);
+        Ok(db_schema)
+    }
+
+    async fn execute(&self, query: String) -> Result<Vec<serde_json::Value>, Error> {
+        let conn = self.get_client().await?;
+        let stmt = conn.prepare_cached(&query).await?;
+
+        let rows = conn.query(&stmt, &[]).await?;
+
+        Ok(rows
+            .into_iter()
+            .map(row_to_json)
+            .collect::<Result<Vec<serde_json::Value>>>()?)
+    }
+
+    fn get_database(&self) -> &str {
+        "postgres"
+    }
 }

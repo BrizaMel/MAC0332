@@ -57,10 +57,9 @@ impl Expression for OrExpression {
     }
 }
 
-pub fn initial_to_command(initial: serde_json::Value) -> Result<Command, Error> {
-    let expression = initial["filters"].to_string().replace('"', "");
+pub fn initial_to_command(filters: String) -> Result<Command, Error> {
+    let expression = filters.replace('"', "");
     println!("initial expression {}", expression);
-    println!();
 
     let command = parse(expression)?;
 
@@ -143,8 +142,7 @@ fn terminal_expression_to_simple_command(expression: String) -> Result<Command, 
         false => {
             if string_is_attribute(parts[2].to_string())? {
                 Value::new(parts[2].to_string(), DataType::Attribute)
-            }
-            else{
+            } else {
                 Value::new(parts[2].to_string(), DataType::String)
             }
         }
@@ -156,12 +154,11 @@ fn terminal_expression_to_simple_command(expression: String) -> Result<Command, 
 }
 
 fn string_is_attribute(string: String) -> Result<bool, Error> {
-
     let split_by_dot = string.split(".");
     let collection = split_by_dot.collect::<Vec<&str>>();
 
     let is_attribute = collection.len() == 3;
-    
+
     Ok(is_attribute)
 }
 
@@ -323,7 +320,6 @@ mod private_tests {
 
     #[test]
     fn test_string_is_attribute() -> Result<(), Error> {
-
         let normal_string = "Disney".into();
         assert_eq!(string_is_attribute(normal_string)?, false);
 

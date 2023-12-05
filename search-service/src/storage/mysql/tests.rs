@@ -1,26 +1,26 @@
 #[cfg(test)]
 mod tests {
-
-    use mysql::{PooledConn};
+    use mysql::PooledConn;
 
     use mysql::prelude::Queryable;
 
-    use crate::mysql::{MySQLConfig, MySQLStorage};
-
     use anyhow::Error;
 
-    async fn setup_storage() -> MySQLStorage {
+    use crate::storage::mysql::{MySQLConfig, MySQLStorage};
 
-        let storage = MySQLStorage::new(
-            MySQLConfig::new(
-                "public,movies".into(),
-                "localhost".into(),
-                3306,
-                "searchservice".into(),
-                "searchservice".into(),
-                "searchservice".into()
-            )
-        ).await.expect("Error initializing MySQLStorage");
+    use crate::traits::SearchServiceStorage;
+
+    async fn setup_storage() -> MySQLStorage {
+        let storage = MySQLStorage::new(MySQLConfig::new(
+            "public,movies".into(),
+            "localhost".into(),
+            3306,
+            "searchservice".into(),
+            "searchservice".into(),
+            "searchservice".into(),
+        ))
+        .await
+        .expect("Error initializing MySQLStorage");
 
         storage
     }
@@ -46,9 +46,7 @@ mod tests {
     async fn test_get_db_tables() -> Result<(), Error> {
         let storage = setup_storage().await;
 
-        let tables = storage
-            .get_db_tables(&storage.allowed_schemas)
-            .await?;
+        let tables = storage.get_db_tables(&storage.allowed_schemas).await?;
         let expected_table_qty = 17;
 
         assert_eq!(tables.len(), expected_table_qty);
@@ -90,10 +88,7 @@ mod tests {
             .any(|pk| pk.attribute_name == "person_id"));
 
         let table_zero_primary_keys = storage
-            .get_table_primary_keys(
-                &"movies".to_string(),
-                &"production_country".to_string(),
-            )
+            .get_table_primary_keys(&"movies".to_string(), &"production_country".to_string())
             .await?;
         let expected_zero_pkeys_qty = 0;
 
@@ -135,9 +130,26 @@ mod tests {
     async fn test_get_db_schema_info() -> Result<(), Error> {
         let storage = setup_storage().await;
         let schema_info = storage.get_db_schema_info().await?;
-        
+
         assert!(schema_info.tables.len() > 0);
-        assert!(schema_info.foreing_keys.len() > 0);
+        assert!(schema_info.foreign_keys.len() > 0);
+
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn test_execute() -> Result<(), Error> {
+        let storage = setup_storage().await;
+
+        let json = storage.execute(
+            "SELECT movies.movie_cast.character_name,movies.person.person_name \
+            FROM movies.movie_cast, movies.person \
+            WHERE movies.movie_cast.person_id = movies.person.person_id \
+            ORDER BY movies.person.person_name ASC \
+            LIMIT 4;".to_string()).await?;
+        assert_eq!(json.len(),4);
+        assert_eq!(json[0]["character_name"],"El Chiquis".to_string());
+        assert_eq!(json[3]["person_name"],"'Snub' Pollard".to_string());
 
         Ok(())
     }

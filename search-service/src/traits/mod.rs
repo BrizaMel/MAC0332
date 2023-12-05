@@ -19,6 +19,8 @@ pub trait Expression {
 }
 
 #[async_trait]
-pub trait DatabaseOperations {
-    async fn get_db_schema_info(&self) -> Result<DbSchema,Error>;
+pub trait SearchServiceStorage: Sync + Send {
+    async fn get_db_schema_info(&self) -> Result<DbSchema, Error>;
+    async fn execute(&self, query: String) -> Result<Vec<serde_json::Value>, Error>;
+    fn get_database(&self) -> &str;
 }

@@ -17,10 +17,7 @@ pub mod tests {
 
     #[test]
     fn test_initial_to_single_command() -> Result<(), Error> {
-        let initial = serde_json::json!({
-            "projection": "[]",
-              "filters": "movies.movie.runtime gt 200"
-        });
+        let filters = "movies.movie.runtime gt 200".to_string();
 
         let single_command = SingleCommand::new(
             "movies.movie.runtime".to_string(),
@@ -30,17 +27,14 @@ pub mod tests {
 
         let command = Command::SingleCommand(single_command);
 
-        assert_eq!(initial_to_command(initial)?, command);
+        assert_eq!(initial_to_command(filters)?, command);
 
         Ok(())
     }
 
     #[test]
     fn test_initial_to_single_command_with_string() -> Result<(), Error> {
-        let initial = serde_json::json!({
-            "projection": "[]",
-              "filters": "movies.movie.release_date lt 01-01-2000"
-        });
+        let filters = "movies.movie.release_date lt 01-01-2000".to_string();
 
         let single_command = SingleCommand::new(
             "movies.movie.release_date".to_string(),
@@ -50,17 +44,14 @@ pub mod tests {
 
         let command = Command::SingleCommand(single_command);
 
-        assert_eq!(initial_to_command(initial)?, command);
+        assert_eq!(initial_to_command(filters)?, command);
 
         Ok(())
     }
 
     #[test]
     fn test_initial_to_composite_command() -> Result<(), Error> {
-        let initial = serde_json::json!({
-            "projection": "[]",
-              "filters": "movies.movie.runtime gt 200 AND movies.movie.revenue gt 1000000"
-        });
+        let filters = "movies.movie.runtime gt 200 AND movies.movie.revenue gt 1000000".to_string();
 
         let operation = LogicalOperator::And;
         let mut commands: Vec<Command> = Vec::new();
@@ -83,17 +74,14 @@ pub mod tests {
 
         let command = Command::CompositeCommand(composite_command);
 
-        assert_eq!(initial_to_command(initial)?, command);
+        assert_eq!(initial_to_command(filters)?, command);
 
         Ok(())
     }
 
     #[test]
     fn test_initial_to_nested_composite_command() -> Result<(), Error> {
-        let initial = serde_json::json!({
-            "projection": "[]",
-              "filters": "(movies.movie.revenue gt 1000000 OR movies.movie.runtime gt 200) AND (movies.movie.runtime eq 50)"
-        });
+        let filters = "(movies.movie.revenue gt 1000000 OR movies.movie.runtime gt 200) AND (movies.movie.runtime eq 50)".to_string();
 
         let nested_operation = LogicalOperator::Or;
         let mut nested_commands: Vec<Command> = Vec::new();
@@ -129,17 +117,14 @@ pub mod tests {
 
         let command = Command::CompositeCommand(final_nested_command);
 
-        assert_eq!(initial_to_command(initial)?, command);
+        assert_eq!(initial_to_command(filters)?, command);
 
         Ok(())
     }
 
     #[test]
     fn test_initial_to_nested_composite_command_inverted() -> Result<(), Error> {
-        let initial = serde_json::json!({
-            "projection": "[]",
-              "filters": "(movies.movie.runtime eq 50) AND (movies.movie.revenue gt 1000000 OR movies.movie.runtime gt 200)"
-        });
+        let filters = "(movies.movie.runtime eq 50) AND (movies.movie.revenue gt 1000000 OR movies.movie.runtime gt 200)".to_string();
 
         let nested_operation = LogicalOperator::Or;
         let mut nested_commands: Vec<Command> = Vec::new();
@@ -175,17 +160,14 @@ pub mod tests {
 
         let command = Command::CompositeCommand(final_nested_command);
 
-        assert_eq!(initial_to_command(initial)?, command);
+        assert_eq!(initial_to_command(filters)?, command);
 
         Ok(())
     }
 
     #[test]
     fn test_initial_to_super_nested_composite_command() -> Result<(), Error> {
-        let initial = serde_json::json!({
-            "projection": "[]",
-              "filters": "(movies.movie.runtime eq 50 AND movies.movie.release_date lt 01-01-2000) AND ((movies.movie.revenue gt 1000000 OR movies.movie.runtime gt 200) OR (movies.movie.revenue eq 2000000))"
-        });
+        let filters = "(movies.movie.runtime eq 50 AND movies.movie.release_date lt 01-01-2000) AND ((movies.movie.revenue gt 1000000 OR movies.movie.runtime gt 200) OR (movies.movie.revenue eq 2000000))".to_string();
 
         let nested_operation_1 = LogicalOperator::And;
         let mut nested_commands_1: Vec<Command> = Vec::new();
@@ -250,27 +232,27 @@ pub mod tests {
 
         let command = Command::CompositeCommand(final_nested_command);
 
-        assert_eq!(initial_to_command(initial)?, command);
+        assert_eq!(initial_to_command(filters)?, command);
 
         Ok(())
     }
 
     #[test]
     fn test_initial_to_super_with_attribute_as_value() -> Result<(), Error> {
-        let initial = serde_json::json!({
-            "projection": "[]",
-              "filters": "movies.person.person_name eq movies.movie_cast.character_name"
-        });
+        let filters = "movies.person.person_name eq movies.movie_cast.character_name".to_string();
 
         let single_command = SingleCommand::new(
             "movies.person.person_name".to_string(),
             Operator::EqualTo,
-            Value::new("movies.movie_cast.character_name".to_string(), DataType::Attribute),
+            Value::new(
+                "movies.movie_cast.character_name".to_string(),
+                DataType::Attribute,
+            ),
         );
 
         let command = Command::SingleCommand(single_command);
 
-        assert_eq!(initial_to_command(initial)?, command);
+        assert_eq!(initial_to_command(filters)?, command);
 
         Ok(())
     }

@@ -201,10 +201,10 @@ mod tests {
 
     #[test]
     fn test_create_select_query() {
-        let projection = vec!["column1".into(), "column2".into(), "column3".into()];
+        let projection = vec!["column1::TEXT".into(), "column2::TEXT".into(), "column3::TEXT".into()];
         let select_query = create_select_query(projection);
 
-        assert_eq!(select_query, "SELECT column1, column2, column3");
+        assert_eq!(select_query, "SELECT column1::TEXT, column2::TEXT, column3::TEXT");
     }
 
     #[test]
@@ -303,8 +303,8 @@ mod tests {
     #[test]
     fn test_command_to_query_simple_command() -> Result<(), Error> {
         let mut projection: Vec<String> = Vec::new();
-        projection.push("movies.movie.title".to_string());
-        projection.push("movies.movie.runtime".to_string());
+        projection.push("movies.movie.title::TEXT".to_string());
+        projection.push("movies.movie.runtime::TEXT".to_string());
 
         let simple_command = SingleCommand::new(
             "movies.movie.runtime".to_string(),
@@ -327,7 +327,7 @@ mod tests {
             query,
             format!(
                 "{}\n{}\n{}",
-                "SELECT movies.movie.title, movies.movie.runtime",
+                "SELECT movies.movie.title::TEXT, movies.movie.runtime::TEXT",
                 "FROM movies.movie",
                 "WHERE (movies.movie.runtime > 200);"
             )
@@ -339,8 +339,8 @@ mod tests {
     #[test]
     fn test_command_to_query_attribute_as_value() -> Result<(), Error> {
         let mut projection: Vec<String> = Vec::new();
-        projection.push("movies.movie.title".to_string());
-        projection.push("movies.person.person_name".to_string());
+        projection.push("movies.movie.title::TEXT".to_string());
+        projection.push("movies.person.person_name::TEXT".to_string());
 
         let simple_command = SingleCommand::new(
             "movies.person.person_name".to_string(),
@@ -387,7 +387,7 @@ mod tests {
             query,
             format!(
                 "{}\n{}\n{}",
-                "SELECT movies.movie.title, movies.person.person_name",
+                "SELECT movies.movie.title::TEXT, movies.person.person_name::TEXT",
                 "FROM movies.movie, movies.movie_cast, movies.person",
                 "WHERE (movies.movie.movie_id = movies.movie_cast.movie_id AND movies.movie_cast.person_id = movies.person.person_id) AND \
                 (movies.person.person_name = movies.movie_cast.character_name);"
@@ -400,10 +400,10 @@ mod tests {
     #[test]
     fn test_intermediary_to_final_composite_command() -> Result<(), Error> {
         let mut projection: Vec<String> = Vec::new();
-        projection.push("movies.movie.title".to_string());
-        projection.push("movies.movie.revenue".to_string());
-        projection.push("movies.movie.runtime".to_string());
-        projection.push("movies.movie.budget".to_string());
+        projection.push("movies.movie.title::TEXT".to_string());
+        projection.push("movies.movie.revenue::TEXT".to_string());
+        projection.push("movies.movie.runtime::TEXT".to_string());
+        projection.push("movies.movie.budget::TEXT".to_string());
 
         let mut nested_commands: Vec<Command> = Vec::new();
         let mut nested_commands_2: Vec<Command> = Vec::new();
@@ -450,7 +450,7 @@ mod tests {
         assert_eq!(
             query, 
             format!("{}\n{}\n{}", 
-            "SELECT movies.movie.title, movies.movie.revenue, movies.movie.runtime, movies.movie.budget", 
+            "SELECT movies.movie.title::TEXT, movies.movie.revenue::TEXT, movies.movie.runtime::TEXT, movies.movie.budget::TEXT", 
             "FROM movies.movie", 
             "WHERE (((movies.movie.runtime > 200) OR (movies.movie.revenue > 1000000)) AND (movies.movie.budget > 1000000));"
         ));
@@ -461,8 +461,8 @@ mod tests {
     #[test]
     fn test_intermediary_to_final_composite_command_2() -> Result<(), Error> {
         let mut projection: Vec<String> = Vec::new();
-        projection.push("movies.movie.movie_id".to_string());
-        projection.push("movies.movie.title".to_string());
+        projection.push("movies.movie.movie_id::TEXT".to_string());
+        projection.push("movies.movie.title::TEXT".to_string());
 
         let simple_command = SingleCommand::new(
             "movies.country.country_name".to_string(),
@@ -506,7 +506,7 @@ mod tests {
 
         assert_eq!(query, format!(
             "{}\n{}\n{}", 
-            "SELECT movies.movie.movie_id, movies.movie.title", 
+            "SELECT movies.movie.movie_id::TEXT, movies.movie.title::TEXT", 
             "FROM movies.country, movies.movie, movies.production_country",
             "WHERE (\
             movies.country.country_id = movies.production_country.country_id AND \
@@ -520,8 +520,8 @@ mod tests {
     #[test]
     fn test_intermediary_to_final_composite_command_3() -> Result<(), Error> {
         let mut projection: Vec<String> = Vec::new();
-        projection.push("movies.movie.movie_id".to_string());
-        projection.push("movies.movie.title".to_string());
+        projection.push("movies.movie.movie_id::TEXT".to_string());
+        projection.push("movies.movie.title::TEXT".to_string());
 
         let composite_command_1 = CompositeCommand::new(LogicalOperator::And, vec![
             Command::SingleCommand(SingleCommand::new(
@@ -607,7 +607,7 @@ mod tests {
 
         assert_eq!(query, format!(
             "{}\n{}\n{}", 
-            "SELECT movies.movie.movie_id, movies.movie.title",
+            "SELECT movies.movie.movie_id::TEXT, movies.movie.title::TEXT",
             "FROM movies.country, movies.movie, movies.movie_company, movies.production_company, movies.production_country",
             "WHERE (\
             movies.country.country_id = movies.production_country.country_id AND \
@@ -627,7 +627,3 @@ mod tests {
         Ok(())
     }
 }
-
-/*
-
-*/

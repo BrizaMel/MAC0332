@@ -13,11 +13,11 @@ deadpool-postgres = "0.10.2"
 dict = "0.1.5"
 petgraph = "0.6.4"
 serde = { version = "1.0.188", features = ["derive"] }
-serde_json = "1.0.107"
+serde_json = "1.0"
 thiserror = "1.0"
 strum = "0.25"
 strum_macros = "0.25"
 tokio = { version = "1", features = ["full"] }
-tokio-postgres = { version = "0.7.6" }
+tokio-postgres = { version = "0.7.10" }
 async-trait = "0.1.74"
 mysql = "24.0.0"

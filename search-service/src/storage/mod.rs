@@ -1,5 +1,3 @@
-use crate::relational::entities::ForeignKey;
-use crate::relational::table_search::entities::TableSearchInfo;
 use crate::relational::table_search::TableSearch;
 use crate::traits::Visitor;
 
@@ -9,6 +7,9 @@ use crate::query_representation::ultimate::command_to_query;
 
 use anyhow::Error;
 
+pub mod mysql;
+pub mod postgres;
+
 #[derive(Clone)]
 pub struct DatabaseVisitor {
     //TableSearch struct with information on the db's tables
@@ -16,10 +17,8 @@ pub struct DatabaseVisitor {
 }
 
 impl DatabaseVisitor {
-    pub fn new(tables: Vec<TableSearchInfo>, foreign_keys: Vec<ForeignKey>) -> Self {
-        Self {
-            table_search: TableSearch::new(tables, foreign_keys),
-        }
+    pub fn new(table_search: TableSearch) -> Self {
+        Self { table_search }
     }
 }
 
@@ -41,10 +40,10 @@ mod tests {
         create_composite_command, create_simple_command,
     };
 
-    use crate::database_storage::visitor::DatabaseVisitor;
-
     use crate::relational::entities::ForeignKey;
     use crate::relational::table_search::entities::TableSearchInfo;
+    use crate::relational::table_search::TableSearch;
+    use crate::storage::DatabaseVisitor;
     use crate::traits::Component;
 
     use anyhow::Error;
@@ -61,26 +60,27 @@ mod tests {
         )];
         let fks: Vec<ForeignKey> = vec![];
 
-        let postgres_visitor = DatabaseVisitor::new(tables, fks);
+        let table_search = TableSearch::new(tables, fks);
+        let postgres_visitor = DatabaseVisitor::new(table_search);
 
         let sc_return = Command::SingleCommand(simple_command).accept(
             vec![
-                "movies.movie.runtime".to_string(),
-                "movies.movie.revenue".to_string(),
+                "movies.movie.runtime::TEXT".to_string(),
+                "movies.movie.revenue::TEXT".to_string(),
             ],
             Arc::new(postgres_visitor.clone()),
         )?;
 
         let cc_return = Command::CompositeCommand(composite_command).accept(
             vec![
-                "movies.movie.runtime".to_string(),
-                "movies.movie.revenue".to_string(),
+                "movies.movie.runtime::TEXT".to_string(),
+                "movies.movie.revenue::TEXT".to_string(),
             ],
             Arc::new(postgres_visitor),
         )?;
 
-        assert_eq!(sc_return, "SELECT movies.movie.runtime, movies.movie.revenue\nFROM movies.movie\nWHERE (movies.movie.runtime > 200);".to_string());
-        assert_eq!(cc_return, "SELECT movies.movie.runtime, movies.movie.revenue\nFROM movies.movie\nWHERE ((movies.movie.runtime > 200) AND (movies.movie.revenue > 1000000));".to_string());
+        assert_eq!(sc_return, "SELECT movies.movie.runtime::TEXT, movies.movie.revenue::TEXT\nFROM movies.movie\nWHERE (movies.movie.runtime > 200);".to_string());
+        assert_eq!(cc_return, "SELECT movies.movie.runtime::TEXT, movies.movie.revenue::TEXT\nFROM movies.movie\nWHERE ((movies.movie.runtime > 200) AND (movies.movie.revenue > 1000000));".to_string());
 
         Ok(())
     }

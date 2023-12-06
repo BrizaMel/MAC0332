@@ -1,7 +1,10 @@
 pub mod cli;
 pub mod controller;
-pub mod postgres;
+pub mod manager;
+pub mod query_representation;
 pub mod relational;
+pub mod storage;
+pub mod traits;
 
 use crate::cli::{Cli, Command};
 use crate::controller::http::run_http_server;

@@ -1,5 +1,6 @@
 # syntax=docker/dockerfile:1
 
+
 ################################################################################
 # Create a stage for building the application.
 
@@ -7,6 +8,11 @@ ARG RUST_VERSION=1.70.0
 ARG APP_NAME=search-service
 
 FROM rust:${RUST_VERSION}-slim-bullseye AS build
+
+RUN apt update
+RUN apt install -y pkg-config
+RUN apt install -y libssl-dev
+
 ARG APP_NAME
 WORKDIR /app
 
@@ -25,9 +31,9 @@ EOF
 # Create a new stage for running the application.
 FROM debian:bullseye-slim AS final
 
-
 # Copy the executable from the "build" stage.
 COPY --from=build /bin/server /bin/
+
 
 # Expose the port that the application listens on.
 EXPOSE 3000

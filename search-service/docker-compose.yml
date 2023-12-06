@@ -12,10 +12,31 @@ services:
       POSTGRES_PASSWORD: search-service
       POSTGRES_DB: search-service
       POSTGRES_HOST_AUTH_METHOD: trust
-    volumes: 
+    volumes:
       - sbcbddb:/var/lib/postgresql/data
     healthcheck:
-      test: "pg_isready -d search-service -U search-service"   
+      test: "pg_isready -d search-service -U search-service"
+      interval: 10s
+      timeout: 3s
+      retries: 3
+
+  mysqldb:
+    container_name: search-service-mysql
+    image: mysql:8.0
+    restart: always
+    ports:
+      - "3306:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: searchservice
+      MYSQL_USER: searchservice
+      MYSQL_PASSWORD: searchservice
+      MSQL_DB: searchservice
+    volumes:
+      - mysqlvolume:/var/lib
+      - ../database/sample/mysql/ddl.sql:/docker-entrypoint-initdb.d/1.sql
+      - ../database/sample/mysql/dml.sql:/docker-entrypoint-initdb.d/2.sql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
       interval: 10s
       timeout: 3s
       retries: 3
@@ -26,14 +47,15 @@ services:
       - 3000:3000
     build: .
     environment:
+      DBMS: postgres
       DB_HOST: search-service-pg
       DB_PORT: 5432
-      ALLOWED_SCHEMAS: public,movies # Schemas the server can query (split by ',')
-    entrypoint: [ "bash", "-c", "server run-http-server"]
-    depends_on:
-      postgresdb:
-        condition: service_healthy
+      ALLOWED_SCHEMAS: public,movies
+      FRONT_END_HOST: "http://localhost:3001"
+    entrypoint: ["bash", "-c", "server run-http-server"]
 
 volumes:
   sbcbddb:
+    driver: local
+  mysqlvolume:
     driver: local

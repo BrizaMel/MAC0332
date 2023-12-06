@@ -40,7 +40,7 @@ cargo test
 
 # Features
 
-This system provides a complex database search service that allows anyone to search for information in a database without having knowledge of its schema, the language used to make queries or the DBMS. Thus, we implemented the following features:
+This system provides a complex database search service that allows anyone to search for information in a database without having knowledge of its schema, the language used to make queries or the DBMS. Thus, the system has the following features:
 
 - Connect to a database
 - Obtain general DB schema information (relationships and data types)
@@ -61,9 +61,9 @@ The following use cases examples describe the interaction with two different typ
 
 A standard user, i.e. people with or without knowledge in DBs, will be able to select the attributes that wishes to project and the query filters.
 
-<center>
-    <img src="docs/use_case_standard_user.png" alt="standard user" width="500" height="500" />
-</center>
+<p align="center">
+    <img src="docs/use_case_standard_user.png" alt="standard user" width="400" />
+</p>
 
 <br>
 
@@ -71,9 +71,9 @@ A standard user, i.e. people with or without knowledge in DBs, will be able to s
 
 A technical specialist, i.e. software engineers, will configurate the system to make the connection with the database and other configurations to enable the standard user to use it.
 
-<center>
-    <img src="docs/use_case_technical_specialist.png" alt="standard user" width="500" height="400" />
-</center>
+<p align="center">
+    <img src="docs/use_case_technical_specialist.png" alt="technical specialist" width="300" />
+</p>
 
 <br>
 <br>
@@ -81,6 +81,6 @@ A technical specialist, i.e. software engineers, will configurate the system to 
 
 # Architecture
 
-### 1. [Relational table search](search-service/src/relational/README.md)
+### 1. [Relational module](search-service/src/relational/README.md)
 
-### 2. [Language interpretation](search-service/src/query_representation/README.md)
+### 2. [Query representation module](search-service/src/query_representation/README.md)

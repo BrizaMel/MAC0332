@@ -2,23 +2,23 @@
   "properties": {
     "attributes": [
       {
-        "name": "Name em Movie em Movies",
+        "name": "movies.movie.name",
         "type": "string",
         "subset": 1
       },
       {
-        "name": "Price em Ticket em Movies",
+        "name": "movies.ticket.price",
         "type": "float",
         "subset": 1
       },
       {
-        "name": "Name em Employee em Movies",
+        "name": "moview.employee.name",
         "type": "string",
         "subset": 0
       }
     ],
     "subsets": [[0, 1], [2]],
-    "operators": ["equal to", "greater than", "in"],
+    "operators": ["EqualTo", "GreaterThan", "in"],
     "logical_operators": ["and", "or"]
   }
 }

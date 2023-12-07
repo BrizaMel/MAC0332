@@ -2,7 +2,7 @@ import { convertReadableStringToPath } from "./StringHelper";
 
 export default function getSelectedAttributesFromQueries(
   queries: QueryModel[],
-  schema: SchemaInfo,
+  schema: SchemaInfo
 ): QueryModelExport[] {
   return queries.map((q, index) =>
     getSelectedAttributesFromQuery(q, schema, index == queries.length - 1)
@@ -15,9 +15,11 @@ function getSelectedAttributesFromQuery(
   isLast: boolean
 ): QueryModelExport {
   return {
-    selectedAttribute: isAttribute(query.selectedAttribute!, schema) ? convertReadableStringToPath(query.selectedAttribute!) : query.selectedAttribute!,
+    selectedAttribute: query.selectedAttribute!,
     selectedOperator: query.selectedOperator!,
-    selectedValue: query.selectedInput!,
+    selectedValue: isAttribute(query.selectedInput!, schema)
+      ? convertReadableStringToPath(query.selectedInput!)
+      : query.selectedInput!,
     selectedLogical: isLast ? "" : query.selectedLogical!,
     selectedLogicalSubquerie: query.selectedLogicalSubquerie ?? "",
     subqueries:
@@ -30,10 +32,10 @@ function getSelectedAttributesFromQuery(
 function isAttribute(text: string, schema: SchemaInfo) {
   let res = false;
   for (let attr of schema.attributes) {
-    if(attr.name == text) {
+    if (attr.name == text) {
       res = true;
       break;
-    } 
+    }
   }
   return res;
 }

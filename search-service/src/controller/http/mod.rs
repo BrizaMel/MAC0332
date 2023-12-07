@@ -15,10 +15,6 @@ use crate::traits::SearchServiceStorage;
 
 use self::entities::{RequestError, Response, SearchRequest};
 
-use axum::{
-    http::{header, HeaderName, HeaderValue},
-};
-
 pub mod entities;
 
 pub async fn run_http_server() -> anyhow::Result<()> {

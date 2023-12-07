@@ -21,8 +21,8 @@ pub fn command_to_query(
     command: &Command,
     table_search: &TableSearch,
 ) -> Result<String, Error> {
-    let mut attributes_needed = projection.clone();
-    attributes_needed.extend(get_command_attributes(command));
+
+    let attributes_needed = get_attributes_needed(projection.clone(),command)?;
 
     let (tables_needed, atributes_pairs_for_join) =
         table_search.get_join_requirements(&attributes_needed);
@@ -36,6 +36,18 @@ pub fn command_to_query(
 
     final_query.push_str(";");
     Ok(final_query)
+}
+
+fn get_attributes_needed(projection: Vec<String>, command: &Command) -> Result<Vec<String>,Error> {
+    let mut attributes_needed = vec![];
+    for p in projection.iter() {
+        let attribute = p.replace("::TEXT","");
+        attributes_needed.push(attribute);
+    }
+    attributes_needed.extend(get_command_attributes(command));
+    attributes_needed.sort();
+    attributes_needed.dedup();
+    Ok(attributes_needed)
 }
 
 fn create_select_query(projection: Vec<String>) -> String {

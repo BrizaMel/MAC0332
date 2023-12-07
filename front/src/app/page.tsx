@@ -7,7 +7,7 @@ import { validateProjection, validateQueries } from "@/helper/QueryValidator";
 import getSelectedAttributesFromQueries from "@/helper/QueryFilter";
 import { requestInfo, sendQueryRequest } from "@/service/Client";
 import MultipleSelect from "./components/MultipleSelects";
-import { generateStringFromQueryArray } from "@/helper/StringHelper";
+import { convertPathToReadableString, generateStringFromQueryArray, generateValidProjection } from "@/helper/StringHelper";
 import { QueryComponentColor } from "@/model/QueryComponentColor";
 
 export default function Home() {
@@ -19,7 +19,16 @@ export default function Home() {
 
   useEffect(() => {
     const data = requestInfo();
-    Promise.resolve(data).then((value) => setSchemaInfo(value));
+    Promise.resolve(data).then((value) => {
+      value.attributes = value.attributes.map((attr) => {
+        return {
+          name: convertPathToReadableString(attr.name),
+          subset: attr.subset,
+          type: attr.type
+        } as Attribute;
+      })
+      setSchemaInfo(value)
+    });
   }, []);
 
   const [queries, setQueries] = useState<QueryModel[]>([]);
@@ -44,9 +53,10 @@ export default function Home() {
     }
     const queriesToSave = getSelectedAttributesFromQueries(queries);
     const querieString = generateStringFromQueryArray(queriesToSave);
+    const validProjection = generateValidProjection(projection);
     
     const toSave = {
-      projection: projection,
+      projection: validProjection,
       filters: querieString,
     } as RequestModel;
 

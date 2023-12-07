@@ -3,7 +3,7 @@ import postMock from "../mock/request-post-mock.json";
 
 export async function requestInfo(): Promise<SchemaInfo> {
   if (process.env.MOCKED == "true" || process.env.ENDPOINT_URL == undefined) {
-    return infoMock.schema_info;
+    return infoMock.properties;
   } else {
     const data = await fetch(`${process.env.ENDPOINT_URL}/properties`, {
       cache: "no-store",

@@ -7,6 +7,14 @@ function convertReadableStringToPath(str: string): string {
     .join(".");
 }
 
+export function convertPathToReadableString(path: string): string {
+  return path.split(".").reverse().join(" em ");
+}
+
+export function generateValidProjection(fields: string[]): string[] {
+  return fields.map((field) => convertReadableStringToPath(field));
+}
+
 export function generateStringFromQueryArray(
   query: QueryModelExport[]
 ): string {

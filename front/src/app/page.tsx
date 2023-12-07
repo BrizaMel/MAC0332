@@ -86,7 +86,7 @@ export default function Home() {
           />
         ))}
         <button onClick={addQueries}>ADD</button>
-        <button onClick={save}>SAVE</button>
+        <button onClick={save}>SEARCH</button>
 
         {response.length > 0 && (
           <table id="results-table">

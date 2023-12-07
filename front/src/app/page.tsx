@@ -47,14 +47,14 @@ export default function Home() {
   }
 
   function save() {
-    if (!validateQueries(queries) || !validateProjection(projection)) {
+    if (!validateQueries(queries) || !validateProjection(projection) || schemaInfo == undefined) {
       alert("Preencha os campos corretamente!");
       return;
     }
-    const queriesToSave = getSelectedAttributesFromQueries(queries);
+    const queriesToSave = getSelectedAttributesFromQueries(queries, schemaInfo);
     const querieString = generateStringFromQueryArray(queriesToSave);
     const validProjection = generateValidProjection(projection);
-    
+
     const toSave = {
       projection: validProjection,
       filters: querieString,

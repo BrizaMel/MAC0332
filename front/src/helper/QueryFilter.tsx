@@ -1,24 +1,39 @@
+import { convertReadableStringToPath } from "./StringHelper";
+
 export default function getSelectedAttributesFromQueries(
-  queries: QueryModel[]
+  queries: QueryModel[],
+  schema: SchemaInfo,
 ): QueryModelExport[] {
   return queries.map((q, index) =>
-    getSelectedAttributesFromQuery(q, index == queries.length - 1)
+    getSelectedAttributesFromQuery(q, schema, index == queries.length - 1)
   );
 }
 
 function getSelectedAttributesFromQuery(
   query: QueryModel,
+  schema: SchemaInfo,
   isLast: boolean
 ): QueryModelExport {
   return {
-    selectedAttribute: query.selectedAttribute!,
+    selectedAttribute: isAttribute(query.selectedAttribute!, schema) ? convertReadableStringToPath(query.selectedAttribute!) : query.selectedAttribute!,
     selectedOperator: query.selectedOperator!,
     selectedValue: query.selectedInput!,
     selectedLogical: isLast ? "" : query.selectedLogical!,
     selectedLogicalSubquerie: query.selectedLogicalSubquerie ?? "",
     subqueries:
       query.subQueries && query.subQueries.length > 0
-        ? getSelectedAttributesFromQueries(query.subQueries)
+        ? getSelectedAttributesFromQueries(query.subQueries, schema)
         : undefined,
   };
+}
+
+function isAttribute(text: string, schema: SchemaInfo) {
+  let res = false;
+  for (let attr of schema.attributes) {
+    if(attr.name == text) {
+      res = true;
+      break;
+    } 
+  }
+  return res;
 }

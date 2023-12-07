@@ -1,4 +1,4 @@
-function convertReadableStringToPath(str: string): string {
+export function convertReadableStringToPath(str: string): string {
   return str
     .replaceAll(" em ", ".")
     .replaceAll(" ", "")
@@ -31,5 +31,5 @@ export function generateStringFromQueryArray(
     } `;
   });
   base += " )";
-  return base.replace(/  +/g, " ");
+  return base.replace(/  +/g, " ").trim();
 }

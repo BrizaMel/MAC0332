@@ -134,7 +134,7 @@ fn terminal_expression_to_simple_command(expression: String) -> Result<Command, 
         "ge" => Operator::GreaterThanOrEqualTo,
         "le" => Operator::LessThanOrEqualTo,
         "ne" => Operator::NotEqualTo,
-        &_ => panic!("Wrong Operator type"),
+        &_ => panic!("{}",format!("Wrong Operator type {}", parts[1])),
     };
 
     let mut parsed_value: String = parts[2].to_string();

@@ -54,7 +54,7 @@ impl SearchServiceManager {
         &self,
         projection: Vec<String>,
         filters: String,
-    ) -> Result<Vec<serde_json::Value>, ManagerError> {
+    ) -> Result<serde_json::Value, ManagerError> {
         let projection = match self.storage.get_database() {
             "postgres" => projection
                 .iter()
@@ -77,7 +77,12 @@ impl SearchServiceManager {
             .accept(projection, Arc::new(visitor))
             .map_err(|e| ManagerError::QueryBuildError(e.to_string()))?;
 
-        Ok(self.storage.execute(query).await?)
+        let res = self.storage.execute(query).await?;
+
+        let res = serde_json::json!({
+            "search_result": serde_json::json!(res),
+        });
+        Ok(res)
     }
 
     async fn get_table_search(&self, db_schema: &DbSchema) -> Result<TableSearch, ManagerError> {

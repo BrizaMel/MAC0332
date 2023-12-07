@@ -22,11 +22,16 @@ pub struct Response<T> {
 
 impl<T> Response<T> {
     pub fn new(status_code: StatusCode, response: T) -> Self {
-        let header = vec![(
+        let header = vec![
+        (
             header::ACCESS_CONTROL_ALLOW_ORIGIN,
-            std::env::var("FRONT_END_HOST").unwrap_or("http://localhost:3000".to_string()),
-        )];
-
+            "*".to_string(),
+        ),
+        (
+            header::ACCESS_CONTROL_ALLOW_HEADERS,
+            "*".to_string(),
+        ),
+        ];
         Self {
             status_code,
             header,

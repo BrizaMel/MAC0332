@@ -44,6 +44,7 @@ export default function Home() {
     }
     const queriesToSave = getSelectedAttributesFromQueries(queries);
     const querieString = generateStringFromQueryArray(queriesToSave);
+    
     const toSave = {
       projection: projection,
       filters: querieString,

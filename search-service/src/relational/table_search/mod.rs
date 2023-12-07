@@ -94,10 +94,10 @@ impl TableSearch {
                 }
             }
         } else if atrs.len() == 1 {
-            let (table_str, atr_str) = &self.get_atr_info(&atrs[0]);
+            let (table_str, _) = &self.get_atr_info(&atrs[0]);
 
             tables_needed.insert(table_str.to_owned());
-            attributes_needed.insert(atr_str.to_owned());
+            // attributes_needed.insert(atr_str.to_owned());
         }
 
         let table_sets = tables_uf.into_labeling();
@@ -149,6 +149,7 @@ impl TableSearch {
         }
 
         let tables_needed_set: HashSet<String> = HashSet::from_iter(tables_needed.into_iter());
+
 
         (tables_needed_set, attributes_needed)
     }

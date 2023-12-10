@@ -6,6 +6,8 @@ use axum::{
 use std::net::SocketAddr;
 use std::sync::Arc;
 
+use tower_http::cors::{Any, CorsLayer};
+
 use crate::manager::SearchServiceManager;
 use crate::storage::mysql::{MySQLConfig, MySQLStorage};
 use crate::storage::postgres::{PostgresConfig, PostgresStorage};
@@ -24,10 +26,16 @@ pub async fn run_http_server() -> anyhow::Result<()> {
     let get_filter_properties = Router::new().route("/properties", get(get_filter_properties));
     let search = Router::new().route("/search", post(search));
 
+    let cors = CorsLayer::new()
+        .allow_methods(Any)
+        .allow_origin(Any)
+        .allow_headers(Any);
+
     let router = Router::new()
         .merge(get_filter_properties)
         .merge(search)
-        .layer(Extension(manager));
+        .layer(Extension(manager))
+        .layer(cors);
 
     axum::Server::bind(&addr)
         .serve(router.into_make_service())
@@ -81,6 +89,5 @@ async fn search(
         status_code: StatusCode::INTERNAL_SERVER_ERROR,
         message: "could not serialize response".into(),
     })?;
-
     Ok(Response::new(StatusCode::OK, res))
 }

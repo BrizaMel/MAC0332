@@ -54,7 +54,7 @@ impl SearchServiceManager {
         &self,
         projection: Vec<String>,
         filters: String,
-    ) -> Result<Vec<serde_json::Value>, ManagerError> {
+    ) -> Result<serde_json::Value, ManagerError> {
         let projection = match self.storage.get_database() {
             "postgres" => projection
                 .iter()
@@ -77,7 +77,12 @@ impl SearchServiceManager {
             .accept(projection, Arc::new(visitor))
             .map_err(|e| ManagerError::QueryBuildError(e.to_string()))?;
 
-        Ok(self.storage.execute(query).await?)
+        let res = self.storage.execute(query).await?;
+
+        let res = serde_json::json!({
+            "search_result": serde_json::json!(res),
+        });
+        Ok(res)
     }
 
     async fn get_table_search(&self, db_schema: &DbSchema) -> Result<TableSearch, ManagerError> {
@@ -93,3 +98,89 @@ impl SearchServiceManager {
         Ok(table_search)
     }
 }
+
+
+
+#[cfg(test)]
+mod tests {
+
+    use super::*;
+
+    use anyhow::Error;
+
+    use serde_json::json;
+
+    use crate::storage::postgres::{PostgresConfig, PostgresStorage};
+
+    use crate::storage::mysql::{MySQLConfig, MySQLStorage};
+
+    async fn aux_get_pg_storage() -> Result<Arc<dyn SearchServiceStorage>, Error> {
+        let storage: Arc<dyn SearchServiceStorage> = Arc::new(
+            PostgresStorage::new(PostgresConfig::new(
+                "public,movies".into(),
+                "localhost".into(),
+                54329,
+                "search-service".into(),
+                "search-service".into(),
+                "search-service".into(),
+            ))
+            .await?,
+        );
+        Ok(storage)
+    }
+
+    async fn aux_get_mysql_storage() -> Result<Arc<dyn SearchServiceStorage>, Error> {
+        let storage: Arc<dyn SearchServiceStorage> = Arc::new(
+            MySQLStorage::new(MySQLConfig::new(
+                "public,movies".into(),
+                "localhost".into(),
+                3306,
+                "searchservice".into(),
+                "searchservice".into(),
+                "searchservice".into(),
+            ))
+            .await?,
+        );
+        Ok(storage)
+    }
+
+    #[tokio::test]
+    async fn test_search_service_pg() -> Result<(), Error> {
+        let db_storage = aux_get_pg_storage().await?;
+
+        let projection = vec![
+            "movies.person.person_name::TEXT".to_string(),
+            "movies.movie_cast.character_name::TEXT".to_string(),
+            "movies.movie.title::TEXT".to_string()
+        ];
+        let filters = "movies.movie_cast.character_name eq Harry Potter".to_string();
+
+        let search_manager = SearchServiceManager::new(db_storage).await;
+
+        let search_result = search_manager.search(projection,filters).await?;
+
+        assert_ne!(search_result["search_result"],json!([]));
+
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn test_search_service_mysql() -> Result<(), Error> {
+        let db_storage = aux_get_mysql_storage().await?;
+
+        let projection = vec![
+            "movies.movie.title".to_string()
+        ];
+        let filters = "movies.person.person_name eq Wagner Moura".to_string();
+
+        let search_manager = SearchServiceManager::new(db_storage).await;
+
+        let search_result = search_manager.search(projection,filters).await?;
+
+        assert_ne!(search_result["search_result"],json!([]));
+
+        Ok(())
+    }
+
+}
+

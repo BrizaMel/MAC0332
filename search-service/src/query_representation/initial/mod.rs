@@ -87,12 +87,40 @@ fn parse(expression: String) -> Result<Command, Error> {
         right_expression.remove(last_occurence);
         let or_expression = OrExpression::new(left_expression, right_expression);
         command = or_expression.interpret()?;
+    } else if expression.contains(") AND ") {
+        parts = expression.split(") AND ").collect();
+        let left_expression = parts[0].replace("(", "");
+        let right_expression = parts[1].to_string();
+        let or_expression = AndExpression::new(left_expression, right_expression);
+        command = or_expression.interpret()?;
+    } else if expression.contains(" AND (") {
+        parts = expression.split(" AND (").collect();
+        let left_expression = parts[0].to_string();
+        let mut right_expression = parts[1].to_string();
+        let last_occurence = parts[1].rfind(")").unwrap();
+        right_expression.remove(last_occurence);
+        let or_expression = AndExpression::new(left_expression, right_expression);
+        command = or_expression.interpret()?;
     } else if expression.contains(" AND ") {
         parts = expression.split(" AND ").collect();
         let left_expression = parts[0].replace("(", "");
         let right_expression = parts[1].to_string();
         let and_expression = AndExpression::new(left_expression, right_expression);
         command = and_expression.interpret()?;
+    } else if expression.contains(" OR (") {
+        parts = expression.split(" OR (").collect();
+        let left_expression = parts[0].to_string();
+        let mut right_expression = parts[1].to_string();
+        let last_occurence = parts[1].rfind(")").unwrap();
+        right_expression.remove(last_occurence);
+        let or_expression = OrExpression::new(left_expression, right_expression);
+        command = or_expression.interpret()?;
+    } else if expression.contains(") OR ") {
+        parts = expression.split(") OR ").collect();
+        let left_expression = parts[0].replace("(", "");
+        let right_expression = parts[1].to_string();
+        let or_expression = OrExpression::new(left_expression, right_expression);
+        command = or_expression.interpret()?;
     } else if expression.contains(" OR ") {
         parts = expression.split(" OR ").collect();
         let left_expression = parts[0].replace("(", "");
@@ -134,10 +162,10 @@ fn terminal_expression_to_simple_command(expression: String) -> Result<Command, 
         "ge" => Operator::GreaterThanOrEqualTo,
         "le" => Operator::LessThanOrEqualTo,
         "ne" => Operator::NotEqualTo,
-        &_ => panic!("Wrong Operator type"),
+        &_ => panic!("{}",format!("Wrong Operator type {}", parts[1])),
     };
 
-    let mut parsed_value: String = parts[2].to_string();
+    let mut parsed_value: String = parts[2].trim().to_string();
     for i in 3..parts.len() {
         parsed_value.push_str(format!(" {}",parts[i]).as_str());
     }

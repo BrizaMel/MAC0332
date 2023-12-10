@@ -1,0 +1,24 @@
+{
+  "properties": {
+    "attributes": [
+      {
+        "name": "movies.movie.name",
+        "type": "string",
+        "subset": 1
+      },
+      {
+        "name": "movies.ticket.price",
+        "type": "float",
+        "subset": 1
+      },
+      {
+        "name": "moview.employee.name",
+        "type": "string",
+        "subset": 0
+      }
+    ],
+    "subsets": [[0, 1], [2]],
+    "operators": ["EqualTo", "GreaterThan", "in"],
+    "logical_operators": ["and", "or"]
+  }
+}
